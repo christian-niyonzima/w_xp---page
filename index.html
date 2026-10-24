@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Christian XP</title>
+    <meta name="description" content="Career landing page of Christian Niyonzima: a Windows XP desktop with a Matrix terminal hidden inside." />
+    <meta name="theme-color" content="#245ddb" />
+    <meta property="og:title" content="Christian XP: career desktop" />
+    <meta property="og:description" content="A Windows XP desktop with 3D transitions and a Matrix terminal. Double-click around, or type help." />
+    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="css/xp.css" />
+    <link rel="stylesheet" href="css/matrix.css" />
+  </head>
+  <body>
+    <div id="stage">
+      <!-- ============ BOOT ============ -->
+      <section id="screen-boot" class="screen" aria-label="Starting up">
+        <div class="boot-center">
+          <div class="boot-logo">
+            <span class="boot-pill" aria-hidden="true"></span>
+            <div class="boot-word">
+              <span class="boot-small" data-bind="name"></span>
+              <span class="boot-name"><span data-bind="firstName"></span><sup>xp</sup></span>
+              <span class="boot-edition">Career Edition</span>
+            </div>
+          </div>
+          <div class="boot-bar" role="progressbar" aria-label="Loading"><div class="boot-blocks"><i></i><i></i><i></i></div></div>
+        </div>
+        <p class="boot-skip">click or press any key to skip</p>
+        <footer class="boot-foot"><span>Copyright © 2002–2026</span><span class="boot-brand" data-bind="name"></span></footer>
+      </section>
+
+      <!-- ============ WELCOME / LOG ON ============ -->
+      <section id="screen-welcome" class="screen" aria-label="Welcome">
+        <div class="wl-top"></div>
+        <div class="wl-mid">
+          <div class="wl-left">
+            <div class="wl-logo">
+              <span class="boot-pill" aria-hidden="true"></span>
+              <span class="boot-name"><span data-bind="firstName"></span><sup>xp</sup></span>
+            </div>
+            <p class="wl-hint">To begin, click your user name</p>
+          </div>
+          <div class="wl-divider" aria-hidden="true"></div>
+          <div class="wl-right" id="wl-users"></div>
+        </div>
+        <div class="wl-bottom">
+          <button class="wl-power" id="wl-power"><span class="wl-power-ico" aria-hidden="true"></span>Turn off computer</button>
+          <p class="wl-note">After you log on, you can explore the folders on the desktop, or jack into the Matrix terminal and type <b>help</b>.</p>
+        </div>
+      </section>
+
+      <!-- ============ DESKTOP ============ -->
+      <section id="screen-desktop" class="screen" aria-label="Desktop">
+        <div class="desk-wallpaper" id="wallpaper"></div>
+        <canvas class="desk-rain" id="wallpaper-rain" hidden></canvas>
+        <div class="desk-icons" id="desk-icons" role="list" aria-label="Desktop icons"></div>
+        <div class="desk-select" id="desk-select" hidden></div>
+        <div class="desk-windows" id="desk-windows"></div>
+        <nav class="start-menu" id="start-menu" aria-label="Start menu" hidden></nav>
+        <div class="balloon" id="balloon" role="status" hidden></div>
+        <div class="desk-tint" aria-hidden="true"></div>
+        <footer class="taskbar" id="taskbar">
+          <button class="start-btn" id="start-btn" aria-haspopup="true" aria-expanded="false" aria-controls="start-menu"><span class="start-ico"></span><span class="start-txt">start</span></button>
+          <div class="quick-launch" id="quick-launch"></div>
+          <div class="task-buttons" id="task-buttons"></div>
+          <div class="tray">
+            <button class="tray-ico" id="tray-matrix" title="Enter the Matrix" aria-label="Enter the Matrix"></button>
+            <button class="tray-ico" id="tray-sound" aria-label="Toggle sound"></button>
+            <time class="tray-clock" id="tray-clock"></time>
+          </div>
+        </footer>
+      </section>
+
+      <!-- ============ SHUT DOWN ============ -->
+      <section id="screen-shutdown" class="screen" aria-label="Shutting down">
+        <div class="sd-saving"><span class="boot-pill" aria-hidden="true"></span><p class="sd-saving-text">Shutting down…</p></div>
+        <div class="sd-safe">
+          <p class="sd-msg">It's now safe to turn off<br />your computer.</p>
+          <p class="sd-hint">click anywhere to start it again</p>
+        </div>
+      </section>
+    </div>
+
+    <!-- ============ MATRIX TERMINAL (overlays the desktop) ============ -->
+    <section id="screen-matrix" class="screen" aria-label="Matrix terminal">
+      <canvas class="matrix-rain"></canvas>
+      <div class="matrix-vignette"></div>
+      <div class="term">
+        <header class="term-head">
+          <span class="term-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span class="term-title">visitor@matrix: ~</span>
+          <button class="term-exit">exit <kbd>esc</kbd></button>
+        </header>
+        <div class="term-screen">
+          <div class="term-out"></div>
+          <div class="term-line">
+            <span class="term-prompt"></span>
+            <span class="term-typed"><span class="term-before"></span><span class="term-caret"></span><span class="term-after"></span><span class="term-ghost">type help and press enter</span></span>
+            <input class="term-input" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go" aria-label="Terminal command" />
+          </div>
+          <div class="term-live sr-only" aria-live="polite"></div>
+        </div>
+        <div class="term-chips" aria-label="Suggested commands"></div>
+      </div>
+      <div class="matrix-scan" aria-hidden="true"></div>
+    </section>
+
+    <div class="screensaver" id="screensaver" hidden><canvas></canvas><p class="ss-label" data-bind="firstName"></p></div>
+    <div class="glitch" id="glitch" aria-hidden="true"></div>
+
+    <noscript>
+      <div class="noscript">
+        <h1>Christian Niyonzima</h1>
+        <p>This career page is an interactive Windows XP desktop and needs JavaScript. Turn it on, or find me on <a href="https://github.com/christian-niyonzima">GitHub</a>.</p>
+      </div>
+    </noscript>
+
+    <script src="js/data.js"></script>
+    <script src="js/icons.js"></script>
+    <script src="js/sound.js"></script>
+    <script src="js/rain.js"></script>
+    <script src="js/wm.js"></script>
+    <script src="js/apps.js"></script>
+    <script src="js/terminal.js"></script>
+    <script src="js/main.js"></script>
+  </body>
+</html>
