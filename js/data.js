@@ -20,6 +20,16 @@ window.PROFILE = {
   resume: '',
   email: 'you@example.com',
 
+  // Desktop wallpaper. Upload the original XP "Bliss" photo into the assets folder
+  // named bliss.jpg (or .png / .webp) and it is used automatically; until then a
+  // hand-drawn look-alike is shown. Or point this at any other picture.
+  wallpaperImage: '',
+
+  // Smooth sweep transitions between screens, folders, windows and menus.
+  // Set to false for no animations at all (visitors can also switch them off
+  // in Display Properties → Appearance).
+  transitions: true,
+
   about: {
     bio: [
       "Hi, I'm Christian — a developer who likes turning ideas into things people can click, tap and play with.",
@@ -85,14 +95,14 @@ window.PROFILE = {
       name: 'XP Career Desktop',
       year: '2026',
       role: 'Design & development',
-      summary: 'This website: a Windows XP desktop with 3D transitions and a Matrix terminal hidden inside.',
+      summary: 'This website: a Windows XP desktop with smooth sweep transitions and a Matrix terminal hidden inside.',
       details: [
-        'Window manager with dragging, resizing, minimise/maximise and a 3D window switcher.',
-        'Explorer folders that rotate like a cube when you navigate between them.',
+        'Window manager with dragging, resizing, minimise/maximise and a Flip 3D window switcher.',
+        'Explorer folders that sweep smoothly from view to view, with an option to turn all animation off.',
         'A Matrix terminal with digital rain, a fake file system, tab-completion and command history.',
         'Plain HTML, CSS and JavaScript. No frameworks, no build step.',
       ],
-      tech: ['HTML', 'CSS 3D', 'JavaScript', 'Canvas', 'Web Audio'],
+      tech: ['HTML', 'CSS', 'JavaScript', 'Canvas', 'Web Audio'],
       links: [{ label: 'View source', url: 'https://github.com/christian-niyonzima/w_xp---page' }],
     },
     {

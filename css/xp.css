@@ -142,7 +142,7 @@ code {
 }
 
 /* ==========================================================================
-   Screens (each one is a cube face during 3D transitions)
+   Screens
    ========================================================================== */
 #stage {
   position: fixed;
@@ -163,16 +163,17 @@ code {
   display: block;
 }
 
-/* Little red/blue pill emblem used as the "logo". */
-.boot-pill {
-  display: inline-block;
-  width: 26px;
-  height: 58px;
-  border-radius: 13px;
-  transform: rotate(40deg);
-  background: linear-gradient(180deg, #ff7b7b 0%, #e01b1b 22%, #8a0000 49.5%, #001f7a 50.5%, #1b5fe0 78%, #8ab8ff 100%);
-  box-shadow: inset 4px 0 4px rgba(255, 255, 255, 0.45), inset -3px 0 5px rgba(0, 0, 0, 0.4), 0 0 18px rgba(80, 140, 255, 0.35);
+/* The four-colour flag logo (boot, log-on and shut-down screens). */
+.xp-logo {
+  display: grid;
+  place-items: center;
   flex: none;
+  filter: drop-shadow(1px 2px 3px rgba(0, 0, 0, 0.35));
+}
+
+.xp-logo svg {
+  width: 64px;
+  height: 64px;
 }
 
 /* ---------------- Boot ---------------- */
@@ -357,9 +358,9 @@ code {
   gap: 16px;
 }
 
-.wl-logo .boot-pill {
-  width: 20px;
-  height: 44px;
+.wl-logo .xp-logo svg {
+  width: 52px;
+  height: 52px;
 }
 
 .wl-logo .boot-name {
@@ -651,19 +652,8 @@ code {
 @keyframes icon-in {
   from {
     opacity: 0;
-    transform: perspective(500px) rotateX(-95deg) translateY(-24px);
+    transform: translateY(10px);
   }
-}
-
-/* Green layer that fades in as the desktop falls into the Matrix. */
-.desk-tint {
-  position: absolute;
-  inset: 0;
-  z-index: 9999;
-  pointer-events: none;
-  background: #00ff66;
-  mix-blend-mode: multiply;
-  opacity: 0;
 }
 
 .desk-select {
@@ -716,8 +706,8 @@ code {
 }
 
 .start-ico {
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   display: grid;
   place-items: center;
   filter: drop-shadow(1px 1px 1px rgba(0, 0, 0, 0.4));
@@ -1880,12 +1870,7 @@ code {
 .ex-stage {
   position: absolute;
   inset: 0;
-  perspective: 1200px;
   overflow: hidden;
-}
-
-.ex-stage.is-turning {
-  background: #2b4ea8;
 }
 
 .ex-face {
@@ -1928,7 +1913,7 @@ code {
 @keyframes tile-in {
   from {
     opacity: 0;
-    transform: perspective(500px) rotateY(-40deg) translateX(-12px);
+    transform: translateX(-10px);
   }
 }
 
@@ -2516,7 +2501,7 @@ code {
 }
 
 .contact-row:hover {
-  transform: perspective(600px) translateZ(10px);
+  transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(33, 93, 198, 0.15);
   border-color: #9db4e8;
 }
@@ -2756,7 +2741,6 @@ main > .portal-h:not(:first-child) {
 .link-cards {
   display: grid;
   gap: 10px;
-  perspective: 900px;
 }
 
 .link-card {
@@ -2771,11 +2755,10 @@ main > .portal-h:not(:first-child) {
   border-radius: 6px;
   background: linear-gradient(180deg, #fff, #f1f5fd);
   transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s;
-  transform-style: preserve-3d;
 }
 
 .link-card:hover {
-  transform: translateZ(18px) rotateX(5deg);
+  transform: translateY(-2px);
   box-shadow: 0 8px 18px rgba(18, 64, 158, 0.2);
   border-color: #7aa0e6;
 }
@@ -3053,6 +3036,34 @@ main > .portal-h:not(:first-child) {
 
 .dp-wait {
   width: 52px;
+}
+
+.xp-fieldset {
+  margin: 0;
+  padding: 8px 12px 10px;
+  border: 1px solid #d0d0bf;
+  border-radius: 4px;
+}
+
+.xp-fieldset legend {
+  padding: 0 4px;
+  color: #0046d5;
+}
+
+.xp-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  line-height: 1.4;
+}
+
+.xp-check input {
+  margin: 1px 0 0;
+}
+
+.dp-note {
+  margin: 8px 0 0 19px;
+  color: #555;
 }
 
 .dp-btns {
@@ -3369,6 +3380,24 @@ main > .portal-h:not(:first-child) {
   .balloon::after {
     right: 46px;
   }
+}
+
+/* Effects switched off: no entrance or hover animations (loading indicators keep moving). */
+html.no-motion .d-icon,
+html.no-motion .ex-item,
+html.no-motion .meter .xp-progress i,
+html.no-motion .xp-dim,
+html.no-motion .flip-overlay,
+html.no-motion .boot-skip {
+  animation: none !important;
+}
+
+html.no-motion .window,
+html.no-motion .d-icon,
+html.no-motion .link-card,
+html.no-motion .contact-row,
+html.no-motion .off-btn svg {
+  transition: none !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

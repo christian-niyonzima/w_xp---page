@@ -324,6 +324,17 @@
         <path d="M24 15h9a9 9 0 0 1 0 18h-9z" fill="url(#${b})" stroke="#001450"/>
         <path d="M10 19.5h26" stroke="#fff" stroke-opacity=".55" stroke-width="2" stroke-linecap="round"/></g>`;
     },
+    // The classic four-colour waving flag (start button, boot and log-on screens).
+    xpflag: () => {
+      const r = uid(), g = uid(), b = uid(), y = uid();
+      return `<defs>${lin(r, [[0, '#ff8a4c'], [1, '#e2380f']], 1, 1)}${lin(g, [[0, '#a6e04a'], [1, '#4f9e0e']], 1, 1)}${lin(b, [[0, '#52b8ff'], [1, '#0a62d6']], 1, 1)}${lin(y, [[0, '#ffe066'], [1, '#f2a300']], 1, 1)}</defs>
+        <g stroke="rgba(0,0,0,.18)" stroke-width=".6" stroke-linejoin="round">
+          <path d="M6.5 12.5C12 9.8 18 9.8 24 12.2l-1.2 11.2C16.8 21 10.8 21 5.2 23.8z" fill="url(#${r})"/>
+          <path d="M25.6 12.8c5.9 2.5 11.9 2.5 17.9-.2l-1.3 11.3c-6 2.7-12 2.7-17.8.1z" fill="url(#${g})"/>
+          <path d="M5 25.4c5.6-2.8 11.6-2.8 17.6-.4l-1.2 11.2c-6-2.4-12-2.4-17.7.4z" fill="url(#${b})"/>
+          <path d="M24.2 25.6c5.8 2.6 11.8 2.6 17.8-.1l-1.3 11.3c-6 2.7-12 2.7-17.7 0z" fill="url(#${y})"/>
+        </g>`;
+    },
     key: () => RAW.logoff(),
     copy: () =>
       `<rect x="14" y="4" width="26" height="32" rx="2" fill="#fff" stroke="#7a8fa6"/><rect x="8" y="12" width="26" height="32" rx="2" fill="#fff" stroke="#7a8fa6"/>

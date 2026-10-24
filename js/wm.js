@@ -1,9 +1,31 @@
-/* Window manager: XP Luna windows with 3D open / close / minimise animations,
+/* Window manager: XP Luna windows with smooth open / close / minimise animations,
  * plus shared helpers (animation, menus, message boxes) and a "Flip 3D" switcher. */
 (function () {
   const XP = (window.XP = window.XP || {});
 
   XP.reduced = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+  /* Transitions can be switched off: by the owner (PROFILE.transitions = false),
+   * by each visitor (Display Properties → Appearance), or by the OS "reduce motion" setting. */
+  const motionPref = () => {
+    try {
+      const v = localStorage.getItem('xp:motion');
+      if (v === '0' || v === '1') return v === '1';
+    } catch (e) {}
+    return (window.PROFILE || {}).transitions !== false;
+  };
+  XP.motion = () => !XP.reduced && motionPref();
+  XP.setMotion = (on) => {
+    try {
+      localStorage.setItem('xp:motion', on ? '1' : '0');
+    } catch (e) {}
+    document.documentElement.classList.toggle('no-motion', !XP.motion());
+  };
+  document.documentElement.classList.toggle('no-motion', !XP.motion());
+
+  // Modern easing: fast start, long soft landing.
+  XP.EASE = 'cubic-bezier(.22,1,.36,1)';
+  XP.EASE_IN = 'cubic-bezier(.55,0,.75,.2)';
   XP.mobile = () => window.innerWidth <= 720;
   XP.$ = (s, r = document) => r.querySelector(s);
   XP.$$ = (s, r = document) => Array.from(r.querySelectorAll(s));
@@ -18,8 +40,8 @@
 
   /** Web Animations wrapper that becomes a no-op when the user prefers reduced motion. */
   XP.animate = (el, frames, opts = {}) => {
-    if (XP.reduced || !el || !el.animate) return { finished: Promise.resolve(), cancel() {} };
-    const a = el.animate(frames, Object.assign({ duration: 400, easing: 'cubic-bezier(.2,.8,.2,1)' }, opts));
+    if (!XP.motion() || !el || !el.animate) return { finished: Promise.resolve(), cancel() {} };
+    const a = el.animate(frames, Object.assign({ duration: 400, easing: XP.EASE }, opts));
     a.finished.catch(() => {});
     return a;
   };
@@ -41,7 +63,6 @@
   // Layout size of the window area (ignores 3D transforms on the desktop).
   const areaOf = () => ({ width: layer().clientWidth, height: layer().clientHeight });
   const bar = () => document.getElementById('task-buttons');
-  const P = (deg) => `perspective(1400px) ${deg}`;
 
   function open(o) {
     const id = o.id || 'win-' + ++seq;
@@ -96,17 +117,16 @@
     if ((XP.mobile() && resizable) || o.maximized) maximize(id, false);
     focus(id);
 
-    // 3D "fly out of the icon" entrance.
+    // Sweep out of the icon that opened it (or a soft zoom-in when there is no icon).
     const r = el.getBoundingClientRect();
     if (o.from) el.style.transformOrigin = `${o.from.left + o.from.width / 2 - r.left}px ${o.from.top + o.from.height / 2 - r.top}px`;
     const a = XP.animate(
       el,
       [
-        { transform: P('rotateX(-62deg) rotateY(22deg) scale(.06)'), opacity: 0 },
-        { transform: P('rotateX(7deg) rotateY(-3deg) scale(1.015)'), opacity: 1, offset: 0.72 },
-        { transform: P('rotateX(0deg) rotateY(0deg) scale(1)'), opacity: 1 },
+        { transform: o.from ? 'translateY(0px) scale(.25)' : 'translateY(12px) scale(.96)', opacity: 0 },
+        { transform: 'translateY(0px) scale(1)', opacity: 1 },
       ],
-      { duration: o.from ? 640 : 420, easing: 'cubic-bezier(.2,.9,.25,1)' }
+      { duration: o.from ? 420 : 260 }
     );
     XP.settle(a).then(() => (el.style.transformOrigin = ''));
     if (o.sound !== false) XP.sound.play('open');
@@ -269,10 +289,10 @@
     const a = XP.animate(
       win.el,
       [
-        { transform: P('translate(0,0) rotateX(0deg) scale(1)'), opacity: 1 },
-        { transform: P(`translate(${dx}px,${dy}px) rotateX(72deg) scale(.06)`), opacity: 0.15 },
+        { transform: 'translate(0px,0px) scale(1)', opacity: 1 },
+        { transform: `translate(${dx}px,${dy}px) scale(.16)`, opacity: 0 },
       ],
-      { duration: 420, easing: 'cubic-bezier(.55,0,.8,.3)' }
+      { duration: 300, easing: XP.EASE_IN }
     );
     await XP.settle(a);
     if (win.minimized) win.el.classList.add('is-min');
@@ -289,10 +309,10 @@
       XP.animate(
         win.el,
         [
-          { transform: P(`translate(${dx}px,${dy}px) rotateX(72deg) scale(.06)`), opacity: 0.15 },
-          { transform: P('translate(0,0) rotateX(0deg) scale(1)'), opacity: 1 },
+          { transform: `translate(${dx}px,${dy}px) scale(.16)`, opacity: 0 },
+          { transform: 'translate(0px,0px) scale(1)', opacity: 1 },
         ],
-        { duration: 420, easing: 'cubic-bezier(.2,.8,.3,1)' }
+        { duration: 380 }
       );
     }
     focus(id);
@@ -309,10 +329,10 @@
     const a = XP.animate(
       win.el,
       [
-        { transform: P('rotateY(0deg) rotateX(0deg) translateZ(0px) scale(1)'), opacity: 1 },
-        { transform: P('rotateY(-32deg) rotateX(14deg) translateZ(-300px) scale(.86)'), opacity: 0 },
+        { transform: 'translateY(0px) scale(1)', opacity: 1 },
+        { transform: 'translateY(10px) scale(.95)', opacity: 0 },
       ],
-      { duration: 360, easing: 'cubic-bezier(.5,0,.75,0)' }
+      { duration: 180, easing: XP.EASE_IN }
     );
     focusTop();
     await XP.settle(a);
@@ -506,9 +526,7 @@
     }
     el.style.left = Math.min(x, vw - el.offsetWidth - 4) + 'px';
     el.style.top = (y + el.offsetHeight > vh - 4 ? Math.max(4, y - el.offsetHeight) : y) + 'px';
-    XP.animate(el, [{ opacity: 0, transform: 'perspective(600px) rotateX(-18deg)' }, { opacity: 1, transform: 'perspective(600px) rotateX(0deg)' }], {
-      duration: 160,
-    });
+    XP.animate(el, [{ opacity: 0, transform: 'translateY(-4px)' }, { opacity: 1, transform: 'translateY(0px)' }], { duration: 140 });
     const away = (e) => {
       if (!el.contains(e.target)) closeMenu();
     };

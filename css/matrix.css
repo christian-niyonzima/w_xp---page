@@ -1,8 +1,11 @@
 /* ==========================================================================
    The Matrix terminal
    ========================================================================== */
-#screen-matrix {
+:root {
   --mx-rgb: 0, 255, 102;
+}
+
+#screen-matrix {
   z-index: 50;
   background: #000;
   font-family: "Share Tech Mono", "Cascadia Mono", Consolas, "Lucida Console", monospace;
@@ -436,30 +439,24 @@
   }
 }
 
-/* RGB-split glitch flash when jacking in / out */
-.glitch {
+/* The glowing line that sweeps the rain over the screen when jacking in / out. */
+.mx-edge {
   position: fixed;
-  inset: 0;
-  z-index: 9995;
+  left: 0;
+  right: 0;
+  top: -2px;
+  z-index: 60;
+  height: 3px;
   pointer-events: none;
   opacity: 0;
+  background: rgb(200, 255, 220);
+  box-shadow: 0 0 10px 3px rgba(var(--mx-rgb), 0.95), 0 0 46px 14px rgba(var(--mx-rgb), 0.45);
 }
 
-.glitch.is-on {
-  animation: glitch 0.55s steps(1) both;
-  background: repeating-linear-gradient(0deg, rgba(0, 255, 102, 0.18) 0 2px, transparent 2px 7px),
-    linear-gradient(90deg, rgba(255, 0, 80, 0.25), rgba(0, 255, 102, 0.25) 50%, rgba(0, 140, 255, 0.25));
-  mix-blend-mode: screen;
-}
-
-@keyframes glitch {
-  0% { opacity: 1; clip-path: inset(10% 0 70% 0); transform: translateX(-12px); }
-  15% { opacity: 1; clip-path: inset(55% 0 20% 0); transform: translateX(14px); }
-  30% { opacity: 1; clip-path: inset(30% 0 45% 0); transform: translateX(-6px); }
-  45% { opacity: 1; clip-path: inset(80% 0 5% 0); transform: translateX(8px); }
-  60% { opacity: 1; clip-path: inset(0 0 85% 0); transform: translateX(-10px); }
-  75% { opacity: 0.6; clip-path: inset(40% 0 40% 0); transform: translateX(4px); }
-  100% { opacity: 0; clip-path: inset(0); transform: none; }
+html.no-motion .t-banner,
+html.no-motion .t-callout,
+html.no-motion .t-granted {
+  animation: none !important;
 }
 
 @media (max-width: 720px) {

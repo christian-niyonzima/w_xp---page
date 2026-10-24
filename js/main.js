@@ -37,7 +37,9 @@
   };
 
   /* ==================================================================
-   * Screens + 3D transitions between them
+   * Screens + the transitions between them
+   *   sweep: the new screen slides in over the old one (which drifts back and dims)
+   *   fade:  a plain cross-fade
    * ================================================================== */
   const Screens = {
     cur: null,
@@ -47,42 +49,38 @@
       this.el(id).classList.add('is-active');
       this.cur = id;
     },
-    async show(id, effect = 'cube', dir = 1) {
+    async show(id, effect = 'sweep', dir = 1) {
       const from = this.cur ? this.el(this.cur) : null;
       const to = this.el(id);
       if (from === to) return;
       to.classList.add('is-active');
       this.cur = id;
-      if (!from || XP.reduced) {
+      if (!from || !XP.motion()) {
         if (from) from.classList.remove('is-active');
         return;
       }
       let fo, ti;
-      let duration = 1150;
-      if (effect === 'cube' || effect === 'flip') {
-        const ax = effect === 'cube' ? 'Y' : 'X';
-        const size = ax === 'Y' ? window.innerWidth : window.innerHeight;
-        const d = size / 2;
-        const T = (a, pull = 0) => `perspective(${Math.round(size * 1.3)}px) translateZ(${-d - pull}px) rotate${ax}(${a}deg) translateZ(${d}px)`;
+      let duration = 800;
+      if (effect === 'sweep') {
         fo = [
-          { transform: T(0), filter: 'brightness(1)' },
-          { transform: T(-45 * dir, d * 0.45), filter: 'brightness(.65)', offset: 0.5 },
-          { transform: T(-90 * dir), filter: 'brightness(.25)' },
+          { transform: 'translateX(0%)', filter: 'brightness(1)' },
+          { transform: `translateX(${-28 * dir}%)`, filter: 'brightness(.5)' },
         ];
         ti = [
-          { transform: T(90 * dir), filter: 'brightness(.25)' },
-          { transform: T(45 * dir, d * 0.45), filter: 'brightness(.65)', offset: 0.5 },
-          { transform: T(0), filter: 'brightness(1)' },
+          { transform: `translateX(${100 * dir}%)`, boxShadow: `${-dir * 30}px 0 70px rgba(0,0,0,.5)` },
+          { transform: 'translateX(0%)', boxShadow: '0px 0 0px rgba(0,0,0,0)' },
         ];
       } else {
-        duration = 800;
-        fo = [{ opacity: 1, transform: 'perspective(1000px) translateZ(0px)' }, { opacity: 0, transform: 'perspective(1000px) translateZ(160px)' }];
-        ti = [{ opacity: 0, transform: 'perspective(1000px) translateZ(-260px)' }, { opacity: 1, transform: 'perspective(1000px) translateZ(0px)' }];
+        duration = 600;
+        fo = [{ opacity: 1 }, { opacity: 0 }];
+        ti = [{ opacity: 0 }, { opacity: 1 }];
       }
-      from.classList.add('is-leaving');
-      const opts = { duration, easing: 'cubic-bezier(.65,0,.35,1)' };
+      from.style.zIndex = '1';
+      to.style.zIndex = '2';
+      const opts = { duration, easing: XP.EASE };
       await XP.settle(XP.animate(from, fo, opts), XP.animate(to, ti, opts));
-      from.classList.remove('is-active', 'is-leaving');
+      from.classList.remove('is-active');
+      from.style.zIndex = to.style.zIndex = '';
     },
   };
   XP.screens = Screens;
@@ -168,7 +166,7 @@
       document.removeEventListener('keydown', finish);
       scr.removeEventListener('click', finish);
       session.set('xp:booted', '1');
-      Screens.show('welcome', 'zoom');
+      Screens.show('welcome', 'fade');
     };
     const t = setTimeout(finish, 3600);
     document.addEventListener('keydown', finish);
@@ -201,7 +199,7 @@
       btn.classList.add('is-loading');
       sub.textContent = 'Loading your personal settings...';
       XP.busy(1200);
-      await XP.wait(XP.reduced ? 0 : 1100);
+      await XP.wait(XP.motion() ? 1100 : 300);
       if (btn.dataset.user === 'neo') await XP.terminal.enter({ from: 'welcome' });
       else await toDesktop();
       sub.textContent = original;
@@ -215,34 +213,34 @@
   /* ==================================================================
    * Wallpapers
    * ================================================================== */
-  const HILL = 'M0 800C260 708 520 618 820 606c280-10 510 58 740 98 160 28 270 20 360 0V1200H0z';
-  const BLISS = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1200" preserveAspectRatio="xMidYMid slice">
-    <defs>
-      <linearGradient id="s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0b47bf"/><stop offset=".28" stop-color="#2a6fdb"/><stop offset=".52" stop-color="#64a4ee"/><stop offset=".7" stop-color="#b1d6f8"/><stop offset="1" stop-color="#e4f2fd"/></linearGradient>
-      <radialGradient id="h" cx=".43" cy=".06" r=".95"><stop offset="0" stop-color="#bdee70"/><stop offset=".22" stop-color="#86cf3c"/><stop offset=".5" stop-color="#4fa31f"/><stop offset=".8" stop-color="#2e7613"/><stop offset="1" stop-color="#1c540a"/></radialGradient>
-      <linearGradient id="b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5f9f2b"/><stop offset="1" stop-color="#2f6d14"/></linearGradient>
-      <linearGradient id="d" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#002200" stop-opacity=".4"/></linearGradient>
-      <filter id="c" x="-30%" y="-80%" width="160%" height="260%"><feGaussianBlur stdDeviation="18"/></filter>
-      <filter id="g"><feTurbulence type="fractalNoise" baseFrequency=".75" numOctaves="2" seed="7"/><feColorMatrix values="0 0 0 0 .1  0 0 0 0 .3  0 0 0 0 0  0 0 0 .28 0"/></filter>
-      <clipPath id="k"><path d="${HILL}"/></clipPath>
-    </defs>
-    <rect width="1920" height="1200" fill="url(#s)"/>
-    <g filter="url(#c)" fill="#fff">
-      <ellipse cx="290" cy="300" rx="250" ry="72" opacity=".92"/><ellipse cx="500" cy="250" rx="190" ry="62" opacity=".85"/>
-      <ellipse cx="420" cy="350" rx="300" ry="48" opacity=".7"/><ellipse cx="820" cy="390" rx="320" ry="54" opacity=".6"/>
-      <ellipse cx="1180" cy="270" rx="250" ry="80" opacity=".9"/><ellipse cx="1360" cy="320" rx="230" ry="58" opacity=".8"/>
-      <ellipse cx="1560" cy="200" rx="210" ry="52" opacity=".75"/><ellipse cx="1700" cy="430" rx="300" ry="58" opacity=".65"/>
-      <ellipse cx="1000" cy="520" rx="420" ry="44" opacity=".5"/><ellipse cx="180" cy="540" rx="280" ry="40" opacity=".5"/>
-      <ellipse cx="1500" cy="560" rx="280" ry="38" opacity=".45"/>
-    </g>
-    <path d="M1080 760c260-80 560-96 840-62v300H1080z" fill="url(#b)"/>
-    <path d="${HILL}" fill="url(#h)"/>
-    <g clip-path="url(#k)"><rect width="1920" height="1200" fill="url(#d)"/><rect width="1920" height="1200" filter="url(#g)"/></g>
-  </svg>`;
-  const blissUrl = `url("data:image/svg+xml;charset=utf-8,${encodeURIComponent(BLISS)}")`;
+  // The real Bliss photo, if the owner uploaded one (any common extension works).
+  // Until it is found, the hand-drawn hills are shown.
+  let photo = null;
+  let photoChecked = false;
+  const PHOTOS = () =>
+    [P.wallpaperImage, 'assets/bliss.jpg', 'assets/bliss.jpeg', 'assets/bliss.png', 'assets/bliss.webp'].filter((v, i, all) => v && all.indexOf(v) === i);
+  function findPhoto(then) {
+    photoChecked = true;
+    const list = PHOTOS();
+    const next = () => {
+      const src = list.shift();
+      if (!src) return;
+      const img = new Image();
+      img.onload = () => then(src);
+      img.onerror = next;
+      img.src = src;
+    };
+    next();
+  }
+  const hills = () =>
+    [photo, 'assets/wallpaper.jpg']
+      .filter(Boolean)
+      .map((src) => `url("${src}") center / cover no-repeat`)
+      .concat('#3a6ea5')
+      .join(', ');
 
   const WALLPAPERS = {
-    bliss: { label: 'Rolling Hills', css: () => `${blissUrl} center / cover no-repeat, #3a6ea5` },
+    bliss: { label: 'Bliss', css: hills },
     matrix: { label: 'Red Pill (live Matrix rain)', css: () => '#000', rain: true },
     azul: {
       label: 'Azul',
@@ -257,6 +255,11 @@
     store.set('xp:wallpaper', name);
     const w = WALLPAPERS[name];
     $('#wallpaper').style.background = w.css();
+    if (name === 'bliss' && !photoChecked)
+      findPhoto((src) => {
+        photo = src;
+        if (wallpaper() === 'bliss') $('#wallpaper').style.background = hills();
+      });
     const canvas = $('#wallpaper-rain');
     canvas.hidden = !w.rain;
     if (w.rain) {
@@ -621,7 +624,7 @@
     const r = anchor.getBoundingClientRect();
     fly.style.left = Math.min(r.right - 4, window.innerWidth - fly.offsetWidth - 4) + 'px';
     fly.style.top = Math.max(4, r.bottom - fly.offsetHeight) + 'px';
-    XP.animate(fly, [{ opacity: 0, transform: 'perspective(600px) rotateY(-25deg)' }, { opacity: 1, transform: 'perspective(600px) rotateY(0deg)' }], { duration: 180 });
+    XP.animate(fly, [{ opacity: 0, transform: 'translateX(-8px)' }, { opacity: 1, transform: 'translateX(0px)' }], { duration: 160 });
   }
 
   function openStart() {
@@ -633,10 +636,10 @@
     XP.animate(
       sm,
       [
-        { opacity: 0, transform: 'perspective(900px) rotateX(-22deg) translateY(24px)' },
-        { opacity: 1, transform: 'perspective(900px) rotateX(0deg) translateY(0px)' },
+        { opacity: 0, transform: 'translateY(14px)' },
+        { opacity: 1, transform: 'translateY(0px)' },
       ],
-      { duration: 240 }
+      { duration: 220 }
     );
   }
   function closeStart() {
@@ -654,7 +657,7 @@
    * Taskbar + tray + balloon
    * ================================================================== */
   function buildTaskbar() {
-    $('#start-btn .start-ico').innerHTML = XP.icon('pill', 22);
+    $('#start-btn .start-ico').innerHTML = XP.icon('xpflag', 24);
     $('#start-btn').addEventListener('click', (e) => {
       e.stopPropagation();
       toggleStart();
@@ -700,7 +703,7 @@
     b.innerHTML = `<button class="balloon-x" aria-label="Close">✕</button><div class="balloon-title">${XP.icon(icon, 16)}<span>${esc(title)}</span></div><div class="balloon-body">${html}</div>`;
     b.hidden = false;
     XP.sound.play('notify');
-    XP.animate(b, [{ opacity: 0, transform: 'perspective(600px) rotateX(-30deg) translateY(16px)' }, { opacity: 1, transform: 'perspective(600px) rotateX(0deg) translateY(0px)' }], {
+    XP.animate(b, [{ opacity: 0, transform: 'translateY(10px)' }, { opacity: 1, transform: 'translateY(0px)' }], {
       duration: 380,
     });
     b.querySelector('.balloon-x').addEventListener('click', hideBalloon);
@@ -811,7 +814,7 @@
   async function toDesktop() {
     initDesktop();
     XP.sound.play('startup');
-    await Screens.show('desktop', 'cube', 1);
+    await Screens.show('desktop', 'sweep', 1);
     desktopShown();
   }
 
@@ -843,12 +846,12 @@
   function overlayDialog(title, buttons) {
     return new Promise((resolve) => {
       const ov = XP.html(`<div class="xp-dim"><div class="off-dialog" role="dialog" aria-label="${esc(title)}">
-        <div class="off-head"><span>${esc(title)}</span>${XP.icon('pill', 28)}</div>
+        <div class="off-head"><span>${esc(title)}</span>${XP.icon('xpflag', 30)}</div>
         <div class="off-body">${buttons.map(([id, ic, label]) => `<button class="off-btn" data-off="${id}">${XP.icon(ic, 36)}<span>${esc(label)}</span></button>`).join('')}</div>
         <div class="off-foot"><button class="xp-btn" data-off="cancel">Cancel</button></div>
       </div></div>`);
       Screens.el('desktop').appendChild(ov);
-      XP.animate(ov.firstElementChild, [{ opacity: 0, transform: 'translate(-50%,-50%) perspective(800px) rotateX(25deg) scale(.9)' }, { opacity: 1, transform: 'translate(-50%,-50%) perspective(800px) rotateX(0deg) scale(1)' }], {
+      XP.animate(ov.firstElementChild, [{ opacity: 0, transform: 'translate(-50%,-47%) scale(.97)' }, { opacity: 1, transform: 'translate(-50%,-50%) scale(1)' }], {
         duration: 320,
       });
       const done = (v) => {
@@ -879,7 +882,7 @@
     XP.sound.play('shutdown');
     closeAllWindows();
     hideBalloon();
-    await Screens.show('welcome', 'cube', -1);
+    await Screens.show('welcome', 'sweep', -1);
   }
 
   async function shutdownDialog() {
@@ -900,14 +903,14 @@
     XP.sound.play('shutdown');
     closeStart();
     hideBalloon();
-    await Screens.show('shutdown', 'zoom');
+    await Screens.show('shutdown', 'fade');
     closeAllWindows();
     await XP.wait(XP.reduced ? 300 : 2000);
     const reboot = () => {
       sd.removeEventListener('click', reboot);
       document.removeEventListener('keydown', reboot);
       session.set('xp:booted', null);
-      Screens.show('boot', 'zoom').then(boot);
+      Screens.show('boot', 'fade').then(boot);
     };
     if (restart) return reboot();
     sd.classList.add('is-safe');
@@ -944,6 +947,7 @@
 
   function init() {
     document.querySelectorAll('[data-bind]').forEach((el) => (el.textContent = P[el.dataset.bind] || ''));
+    document.querySelectorAll('[data-icon]').forEach((el) => (el.innerHTML = XP.icon(el.dataset.icon, 64)));
     document.title = `${P.firstName} XP · ${P.name}, ${P.title}`;
     store.set('xp:visits', (+store.get('xp:visits', 0) || 0) + 1);
     buildWelcome();

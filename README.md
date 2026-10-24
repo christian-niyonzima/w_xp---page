@@ -1,15 +1,16 @@
 # Christian XP: career desktop
 
-A career landing page disguised as a **Windows XP desktop**, with a **Matrix terminal** hidden inside and **3D transitions** everywhere.
+A career landing page disguised as a **Windows XP desktop**, with a **Matrix terminal** hidden inside and smooth, modern **sweep transitions** (or none at all, if you prefer).
 
-- **Boot screen → Welcome screen → Desktop**, turning like the faces of a 3D cube.
+- The classic look: the four-colour flag on the boot screen, log-on screen and Start button, and the green-hill wallpaper.
+- **Boot screen → Welcome screen → Desktop**, with the desktop sweeping in over the log-on screen.
 - A pixel-art **2002 mouse pointer** (plus the hand for links and the "working in background" hourglass).
-- Desktop folders: **About Me**, **Passion Projects**, **Experience**, **Studies**. Opening an item inside a folder spins the view like a cube.
-- **Terminal** icon: the desktop tilts away into the digital rain and you jack into a Matrix terminal. It nudges visitors to type `help`, and offers clickable commands, tab-completion, history, a fake file system (`ls`, `cd`, `cat`, `tree`) and a few secrets.
+- Desktop folders: **About Me**, **Passion Projects**, **Experience**, **Studies**. Opening an item inside a folder sweeps the new view in over the old one.
+- **Terminal** icon: a glowing line sweeps the digital rain down over the screen and you are in a Matrix terminal. It nudges visitors to type `help`, and offers clickable commands, tab-completion, history, a fake file system (`ls`, `cd`, `cat`, `tree`) and a few secrets.
 - **Web Explorer** icon: a 2002-style portal with your LinkedIn, GitHub, e-mail and other links.
-- Real window manager: drag, resize, minimise (3D fall into the taskbar), maximise and close (3D swing away), plus a **Flip 3D** window switcher.
+- Real window manager: drag, resize, minimise (windows glide into the taskbar), maximise and close, plus a **Flip 3D** window switcher.
 - Start menu, Run…, Display Properties (wallpapers, including live Matrix rain), Matrix screen saver, Recycle Bin jokes, log off / turn off.
-- Works on phones (single tap opens things, windows go full screen) and respects "reduce motion".
+- Animations can be switched off entirely (see below). Works on phones (single tap opens things, windows go full screen) and respects "reduce motion".
 
 No frameworks and no build step: plain HTML, CSS and JavaScript. Open `index.html` directly or host it anywhere.
 
@@ -22,12 +23,18 @@ Everything personal lives in **`js/data.js`**:
 | `name`, `firstName`, `title`, `tagline`, `location`, `status` | Shown on the welcome screen, Start menu, profile and terminal |
 | `avatar` | Path to a square photo, e.g. `assets/me.jpg` (empty = initials) |
 | `resume` | Path to your CV, e.g. `assets/resume.pdf` (empty = hidden) |
+| `wallpaperImage` | Optional path to any desktop picture. Leave it empty and an uploaded `assets/bliss.jpg` (or `.png` / `.webp`) is used automatically; with neither, a hand-drawn look-alike (`assets/wallpaper.jpg`) is shown. |
+| `transitions` | `true` for the smooth sweep transitions, `false` for no animations at all. Visitors can also switch them off in Display Properties → Appearance. |
 | `email`, `links` | Your LinkedIn / GitHub / e-mail and anything else. **Replace the LinkedIn and e-mail placeholders.** |
 | `about` | Bio paragraphs, skill groups, skill levels (XP progress bars) and fun facts |
 | `projects`, `experience`, `studies` | One entry per project / job / school. The folders, terminal and search all read from these. |
 | `recycleBin` | Joke files for the Recycle Bin |
 
 Drop your photo or PDF into `assets/` and point `avatar` / `resume` at it.
+
+### Use the original XP wallpaper
+
+On GitHub, open the `assets` folder → **Add file** → **Upload files**, upload the picture named **`bliss.jpg`** (`bliss.png` or `bliss.webp` work too), and commit. The desktop picks it up automatically.
 
 ## Run it locally
 
@@ -59,13 +66,14 @@ css/xp.css          Windows XP "Luna" look: windows, taskbar, Start menu, Explor
 css/matrix.css      the Matrix terminal
 js/data.js          ← your content
 js/icons.js         hand-drawn XP-style SVG icons
-js/wm.js            window manager, 3D window animations, menus, message boxes, Flip 3D
-js/apps.js          Explorer folders (cube navigation), Web Explorer, Run, Help, Display Properties
+js/wm.js            window manager, window animations, transitions on/off, menus, message boxes, Flip 3D
+js/apps.js          Explorer folders (sweep navigation), Web Explorer, Run, Help, Display Properties
 js/terminal.js      Matrix terminal: commands, file system, intro, jack-in / unplug transition
 js/rain.js          3-layer digital rain on canvas
 js/sound.js         small synthesized sound effects (Web Audio, no audio files)
 js/main.js          boot / log on, desktop icons, Start menu, taskbar, wallpapers, screen saver
 assets/cursors/     2002-style pointers (regenerate with `node tools/make-cursors.js`)
+assets/wallpaper.jpg hand-drawn green-hill fallback wallpaper (source: tools/wallpaper.svg, render with `node tools/make-wallpaper.js`)
 ```
 
-All artwork (icons, cursors, wallpaper, logo) is drawn from scratch for this project. It is a fan homage to Windows XP and *The Matrix*, with no affiliation to Microsoft or Warner Bros.
+The icons, cursors and fallback wallpaper are drawn from scratch for this project; the four-colour flag is a homage to the Windows XP logo. This is a personal fan homage to Windows XP and *The Matrix*, with no affiliation to Microsoft or Warner Bros. The original "Bliss" photo is © Microsoft, so this repository does not include it. Add it yourself as described above.

@@ -1,4 +1,4 @@
-/* Apps that live in XP windows: the folder Explorer (with 3D cube navigation),
+/* Apps that live in XP windows: the folder Explorer (with sweeping navigation),
  * the Web Explorer links browser, Run, Display Properties and Help. */
 (function () {
   const XP = (window.XP = window.XP || {});
@@ -250,7 +250,7 @@
       this.root = XP.html(`<div class="ex">
         <div class="xp-menubar">
           <button data-menu="file">File</button><button data-menu="edit">Edit</button><button data-menu="view">View</button><button data-menu="fav">Favorites</button><button data-menu="tools">Tools</button><button data-menu="help">Help</button>
-          <span class="menubar-logo">${icon('pill', 20)}</span>
+          <span class="menubar-logo">${icon('xpflag', 22)}</span>
         </div>
         <div class="xp-toolbar">
           <button class="tool" data-act="back" title="Back">${icon('back', 28)}<span>Back</span></button>
@@ -472,7 +472,8 @@
       return XP.html(`<div class="ex-face ex-face-doc xp-scroll">${it.render()}</div>`);
     }
 
-    /* 3D cube rotation between the old and the new view. */
+    /* Modern sweep between the old and the new view: the new one slides over
+     * the old one, which drifts back and fades (parallax). */
     swap(face, dir) {
       const stage = this.stage;
       const old = this.face;
@@ -481,32 +482,29 @@
       stage.appendChild(face);
       this.face = face;
       if (!old) return;
-      if (dir === 'none' || dir === 'fade' || XP.reduced) {
+      if (dir === 'none' || dir === 'fade' || !XP.motion()) {
         old.remove();
         if (dir === 'fade') XP.animate(face, [{ opacity: 0 }, { opacity: 1 }], { duration: 180 });
         return;
       }
-      const axis = dir === 'up' || dir === 'down' ? 'X' : 'Y';
-      const d = (axis === 'Y' ? stage.clientWidth : stage.clientHeight) / 2;
-      const out = { left: -90, right: 90, up: 90, down: -90 }[dir];
-      const T = (a, pull = 0) => `translateZ(${-d - pull}px) rotate${axis}(${a}deg) translateZ(${d}px)`;
-      const opts = { duration: 720, easing: 'cubic-bezier(.65,0,.35,1)' };
-      stage.classList.add('is-turning');
+      // left/right = into an item and back out; up/down = jumping between folders.
+      const full = dir === 'left' || dir === 'right';
+      const s = dir === 'left' || dir === 'up' ? 1 : -1;
+      const w = stage.clientWidth;
+      const opts = { duration: full ? 480 : 320, easing: XP.EASE };
       const a1 = XP.animate(
         old,
         [
-          { transform: T(0), filter: 'brightness(1)' },
-          { transform: T(out / 2, d * 0.35), filter: 'brightness(.8)', offset: 0.5 },
-          { transform: T(out), filter: 'brightness(.5)' },
+          { transform: 'translateX(0px)', opacity: 1 },
+          { transform: `translateX(${-s * (full ? w * 0.3 : 28)}px)`, opacity: full ? 0.3 : 0 },
         ],
         opts
       );
       const a2 = XP.animate(
         face,
         [
-          { transform: T(-out), filter: 'brightness(.5)' },
-          { transform: T(-out / 2, d * 0.35), filter: 'brightness(.8)', offset: 0.5 },
-          { transform: T(0), filter: 'brightness(1)' },
+          { transform: `translateX(${s * (full ? w : 56)}px)`, opacity: full ? 1 : 0, boxShadow: `${-s * 16}px 0 32px rgba(0,0,0,.18)` },
+          { transform: 'translateX(0px)', opacity: 1, boxShadow: '0px 0 0px rgba(0,0,0,0)' },
         ],
         opts
       );
@@ -514,7 +512,6 @@
       XP.settle(a1, a2).then(() => {
         if (this.face !== face) return;
         old.remove();
-        stage.classList.remove('is-turning');
         this.anims = null;
       });
     }
@@ -703,7 +700,7 @@
   function aboutBox() {
     XP.dialog({
       title: `About ${P.firstName} XP`,
-      icon: 'pill',
+      icon: 'xpflag',
       message: `<b>${esc(P.firstName)} XP</b> · Career Edition<br>Version 2002.${new Date().getFullYear()}<br><br>A portfolio disguised as a Windows XP desktop, with a Matrix terminal hidden inside.<br><br>Made by ${esc(P.name)}.`,
     });
   }
@@ -797,10 +794,10 @@
       XP.animate(
         this.page,
         [
-          { transform: 'perspective(1200px) rotateY(-9deg) translateX(40px) translateZ(-60px)', opacity: 0 },
-          { transform: 'perspective(1200px) rotateY(0deg) translateX(0px) translateZ(0px)', opacity: 1 },
+          { transform: 'translateX(36px)', opacity: 0 },
+          { transform: 'translateX(0px)', opacity: 1 },
         ],
-        { duration: 420 }
+        { duration: 340 }
       );
       if (state.page === 'home') {
         const f = this.page.querySelector('.portal-search');
@@ -1060,9 +1057,10 @@
       <h2>Getting around</h2>
       <ul class="doc-list">
         <li>Double-click a folder on the desktop to open it (on phones a single tap is enough).</li>
-        <li>Inside a folder, open an item to spin into it. Use <b>Back</b>, <b>Up</b> or <b>Other Places</b> to move around.</li>
+        <li>Inside a folder, open an item to sweep into it. Use <b>Back</b>, <b>Up</b> or <b>Other Places</b> to move around.</li>
         <li>Drag windows by their blue title bar, resize them from the edges, double-click the title bar to maximise.</li>
         <li>Right-click the desktop for more options, like wallpapers and <b>Flip 3D</b>.</li>
+        <li>Prefer no animations at all? Right-click the desktop → <b>Properties</b> → <b>Appearance</b>.</li>
       </ul>
       <h2>The Matrix terminal</h2>
       <ul class="doc-list">
@@ -1086,7 +1084,7 @@
     let wall = D.wallpaper();
     let saver = D.saver();
     const content = XP.html(`<div class="dp">
-      <div class="xp-tabs" role="tablist"><button class="xp-tab" disabled>Themes</button><button class="xp-tab is-active" data-tab="desk">Desktop</button><button class="xp-tab" data-tab="saver">Screen Saver</button><button class="xp-tab" disabled>Appearance</button><button class="xp-tab" disabled>Settings</button></div>
+      <div class="xp-tabs" role="tablist"><button class="xp-tab" disabled>Themes</button><button class="xp-tab is-active" data-tab="desk">Desktop</button><button class="xp-tab" data-tab="saver">Screen Saver</button><button class="xp-tab" data-tab="appear">Appearance</button><button class="xp-tab" disabled>Settings</button></div>
       <div class="xp-tabpanel">
         <div class="dp-monitor"><div class="dp-screen"><canvas class="dp-rain"></canvas></div><div class="dp-stand"></div></div>
         <div class="dp-pane" data-pane="desk">
@@ -1099,6 +1097,12 @@
           <label class="dp-label">Screen saver:</label>
           <div class="dp-row"><select class="xp-input dp-saver"><option value="matrix">Matrix Digital Rain</option><option value="none">(None)</option></select><button class="xp-btn" data-act="preview">Preview</button></div>
           <div class="dp-row"><label>Wait: <input class="xp-input dp-wait" type="number" min="1" max="60" value="${saver.wait}"> minutes</label></div>
+        </div>
+        <div class="dp-pane" data-pane="appear" hidden>
+          <fieldset class="xp-fieldset"><legend>Effects</legend>
+            <label class="xp-check"><input type="checkbox" class="dp-motion"${XP.motion() ? ' checked' : ''}${XP.reduced ? ' disabled' : ''}> Use transition effects for screens, windows and menus</label>
+            <p class="dp-note">${XP.reduced ? 'Your device asks for reduced motion, so effects stay off.' : 'Untick for an instant desktop with no animations.'}</p>
+          </fieldset>
         </div>
       </div>
       <div class="dp-btns"><button class="xp-btn" data-act="ok">OK</button><button class="xp-btn" data-act="cancel">Cancel</button><button class="xp-btn" data-act="apply">Apply</button></div>
@@ -1127,6 +1131,7 @@
     let tab = 'desk';
     preview(tab);
     const apply = () => {
+      if (!XP.reduced) XP.setMotion(content.querySelector('.dp-motion').checked);
       D.setWallpaper(wall);
       D.setSaver({ type: saverSel.value, wait: Math.max(1, +content.querySelector('.dp-wait').value || 2) });
     };

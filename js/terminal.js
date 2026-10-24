@@ -1,5 +1,5 @@
 /* The Matrix terminal: a full-screen command line over digital rain.
- * Entering and leaving it is a 3D "jack in / unplug" transition. */
+ * Entering and leaving it is a sweeping "jack in / unplug" transition. */
 (function () {
   const XP = (window.XP = window.XP || {});
   const P = window.PROFILE;
@@ -365,7 +365,7 @@
         if (!c) return ['usage: color <name>   ' + XP.MatrixRain.colors().map((x) => cmd('color ' + x, x)).join(' ')];
         const rgb = rain.setColor(c);
         if (!rgb) return [warn(`color: unknown colour '${esc(c)}'. Options: `) + XP.MatrixRain.colors().map((x) => cmd('color ' + x, x)).join(' ')];
-        el.style.setProperty('--mx-rgb', rgb.join(','));
+        document.documentElement.style.setProperty('--mx-rgb', rgb.join(','));
         return [`The Matrix is now ${hi(esc(c))}.`];
       },
     },
@@ -721,7 +721,7 @@
     idleHint();
   }
 
-  /* ---------- enter / exit (3D) ---------- */
+  /* ---------- enter / exit ---------- */
   function build() {
     if (el) return;
     const root = document.getElementById('screen-matrix');
@@ -740,7 +740,6 @@
       input: root.querySelector('.term-input'),
       chips: root.querySelector('.term-chips'),
     };
-    el.style = root.style;
     rain = new XP.MatrixRain(root.querySelector('.matrix-rain'));
     if (XP.mobile()) el.ghost.textContent = 'type help ↵';
     updatePrompt();
@@ -771,21 +770,9 @@
     root.querySelector('.term-exit').addEventListener('click', () => exit());
   }
 
-  function glitch() {
-    const g = document.getElementById('glitch');
-    g.classList.remove('is-on');
-    void g.offsetWidth;
-    g.classList.add('is-on');
-  }
-
-  // Grayscale + a green "multiply" layer, so the desktop turns Matrix-green without odd hues mid-way.
-  const DESK_OUT = [
-    { transform: 'perspective(900px) rotateX(0deg) translateY(0%) scale(1)', filter: 'grayscale(0) brightness(1)', opacity: 1 },
-    { transform: 'perspective(900px) rotateX(14deg) translateY(0%) scale(.93)', filter: 'grayscale(.8) brightness(.95)', opacity: 1, offset: 0.3 },
-    { transform: 'perspective(900px) rotateX(70deg) translateY(30%) scale(.72)', filter: 'grayscale(1) brightness(.35)', opacity: 0 },
-  ];
-  const TINT = [{ opacity: 0 }, { opacity: 0.9, offset: 0.3 }, { opacity: 1 }];
-  const reverse = (frames) => frames.slice().reverse().map((k, i) => Object.assign({}, k, { offset: k.offset != null ? 1 - k.offset : i === 0 ? 0 : 1 }));
+  // The rain is wiped over the screen by a glowing line (a modern "sweep"), then the terminal slides up.
+  const WIPE = { duration: 820, easing: 'cubic-bezier(.65,0,.35,1)' };
+  const edge = () => document.getElementById('mx-edge');
 
   async function enter(opts = {}) {
     build();
@@ -800,32 +787,35 @@
     XP.desktop && XP.desktop.closeStart && XP.desktop.closeStart();
     const desk = document.getElementById('screen-desktop');
     const from = opts.from === 'welcome' ? document.getElementById('screen-welcome') : desk;
+    const h = window.innerHeight;
     el.root.classList.add('is-active');
     rain.start();
     XP.sound.play('whoosh');
-    glitch();
 
-    const outOpts = { duration: 1150, easing: 'cubic-bezier(.6,0,.4,1)', fill: 'forwards' };
-    const outA = XP.animate(from, DESK_OUT, outOpts);
-    const tint = from.querySelector('.desk-tint');
-    const tintA = XP.animate(tint, TINT, outOpts);
-    const rainA = XP.animate(el.root, [{ opacity: 0 }, { opacity: 1 }], { duration: 900, delay: 250, fill: 'both', easing: 'ease-out' });
-    const termA = XP.animate(
-      el.term,
+    const dimA = XP.animate(from, [{ filter: 'brightness(1)', transform: 'scale(1)' }, { filter: 'brightness(.45)', transform: 'scale(.98)' }], {
+      duration: WIPE.duration,
+      fill: 'forwards',
+    });
+    const wipeA = XP.animate(el.root, [{ clipPath: 'inset(0 0 100% 0)' }, { clipPath: 'inset(0 0 0% 0)' }], Object.assign({ fill: 'both' }, WIPE));
+    const edgeA = XP.animate(
+      edge(),
+      // Same timing as the wipe, and "top" (not transform) so both run on the same thread
+      // and the line rides exactly on the wipe's edge.
       [
-        { transform: 'perspective(1000px) translateZ(-1400px) rotateX(38deg)', opacity: 0 },
-        { transform: 'perspective(1000px) translateZ(70px) rotateX(-4deg)', opacity: 1, offset: 0.75 },
-        { transform: 'perspective(1000px) translateZ(0px) rotateX(0deg)', opacity: 1 },
+        { top: '-2px', opacity: 1 },
+        { top: `${h - 2}px`, opacity: 1 },
       ],
-      { duration: 950, delay: 800, fill: 'both', easing: 'cubic-bezier(.2,.8,.2,1)' }
+      WIPE
     );
-    await XP.settle(outA, tintA, rainA, termA);
+    const termA = XP.animate(el.term, [{ transform: 'translateY(28px)', opacity: 0 }, { transform: 'translateY(0px)', opacity: 1 }], {
+      duration: 520,
+      delay: 600,
+      fill: 'both',
+    });
+    await XP.settle(dimA, wipeA, edgeA, termA);
     if (opts.from === 'welcome') XP.desktop.enterUnderMatrix();
     desk.classList.add('is-under-matrix');
-    outA.cancel();
-    tintA.cancel();
-    rainA.cancel();
-    termA.cancel();
+    [dimA, wipeA, termA].forEach((a) => a.cancel());
     moving = false;
     focusInput();
 
@@ -841,25 +831,33 @@
     clearTimeout(idleT);
     el.input.blur();
     const desk = document.getElementById('screen-desktop');
+    const h = window.innerHeight;
     XP.sound.play('unwhoosh');
-    glitch();
     desk.classList.remove('is-under-matrix');
-    const termA = XP.animate(
-      el.term,
+    const termA = XP.animate(el.term, [{ transform: 'translateY(0px)', opacity: 1 }, { transform: 'translateY(18px)', opacity: 0 }], {
+      duration: 240,
+      easing: XP.EASE_IN,
+      fill: 'forwards',
+    });
+    const sweep = Object.assign({ delay: 160, fill: 'forwards' }, WIPE);
+    const wipeA = XP.animate(el.root, [{ clipPath: 'inset(0 0 0% 0)' }, { clipPath: 'inset(0 0 100% 0)' }], sweep);
+    const edgeA = XP.animate(
+      edge(),
       [
-        { transform: 'perspective(1000px) translateZ(0px) rotateX(0deg)', opacity: 1 },
-        { transform: 'perspective(1000px) translateZ(520px) rotateX(-12deg)', opacity: 0 },
+        { top: `${h - 2}px`, opacity: 1 },
+        { top: '-2px', opacity: 1 },
       ],
-      { duration: 450, fill: 'forwards', easing: 'cubic-bezier(.5,0,.75,0)' }
+      Object.assign({}, WIPE, { delay: 160 })
     );
-    const rainA = XP.animate(el.root, [{ opacity: 1 }, { opacity: 0 }], { duration: 700, delay: 250, fill: 'forwards' });
-    const backOpts = { duration: 1050, delay: 200, fill: 'backwards', easing: 'cubic-bezier(.3,.7,.2,1)' };
-    const deskA = XP.animate(desk, reverse(DESK_OUT), backOpts);
-    const tintA = XP.animate(desk.querySelector('.desk-tint'), reverse(TINT), backOpts);
-    await XP.settle(termA, rainA, deskA, tintA);
+    const deskA = XP.animate(desk, [{ filter: 'brightness(.45)', transform: 'scale(.98)' }, { filter: 'brightness(1)', transform: 'scale(1)' }], {
+      duration: 900,
+      delay: 160,
+      fill: 'backwards',
+    });
+    await XP.settle(termA, wipeA, edgeA, deskA);
     el.root.classList.remove('is-active');
     termA.cancel();
-    rainA.cancel();
+    wipeA.cancel();
     rain.stop();
     active = false;
     moving = false;
