@@ -2,7 +2,7 @@
 
 A career landing page disguised as a **Windows XP desktop**, with a **Matrix terminal** hidden inside and smooth, modern **sweep transitions** (or none at all, if you prefer).
 
-- The classic look: the four-colour flag on the boot screen, log-on screen and Start button, and the green-hill wallpaper.
+- The classic look: the four-colour flag on the boot screen, log-on screen and Start button, and the "Bliss" wallpaper (`assets/bliss.jpg`).
 - **Boot screen → Welcome screen → Desktop**, with the desktop sweeping in over the log-on screen.
 - A pixel-art **2002 mouse pointer** (plus the hand for links and the "working in background" hourglass).
 - Desktop folders: **About Me**, **Passion Projects**, **Experience**, **Studies**. Opening an item inside a folder sweeps the new view in over the old one.
@@ -23,7 +23,7 @@ Everything personal lives in **`js/data.js`**:
 | `name`, `firstName`, `title`, `tagline`, `location`, `status` | Shown on the welcome screen, Start menu, profile and terminal |
 | `avatar` | Path to a square photo, e.g. `assets/me.jpg` (empty = initials) |
 | `resume` | Path to your CV, e.g. `assets/resume.pdf` (empty = hidden) |
-| `wallpaperImage` | Optional path to any desktop picture. Leave it empty and an uploaded `assets/bliss.jpg` (or `.png` / `.webp`) is used automatically; with neither, a hand-drawn look-alike (`assets/wallpaper.jpg`) is shown. |
+| `wallpaperImage` | Optional path to a different desktop picture. Empty = `assets/bliss.jpg` (`.png` / `.webp` also work). If that file is ever missing, a hand-drawn look-alike (`assets/wallpaper.jpg`) is shown. |
 | `transitions` | `true` for the smooth sweep transitions, `false` for no animations at all. Visitors can also switch them off in Display Properties → Appearance. |
 | `email`, `links` | Your LinkedIn / GitHub / e-mail and anything else. **Replace the LinkedIn and e-mail placeholders.** |
 | `about` | Bio paragraphs, skill groups, skill levels (XP progress bars) and fun facts |
@@ -32,9 +32,9 @@ Everything personal lives in **`js/data.js`**:
 
 Drop your photo or PDF into `assets/` and point `avatar` / `resume` at it.
 
-### Use the original XP wallpaper
+### Change the wallpaper
 
-On GitHub, open the `assets` folder → **Add file** → **Upload files**, upload the picture named **`bliss.jpg`** (`bliss.png` or `bliss.webp` work too), and commit. The desktop picks it up automatically.
+Replace `assets/bliss.jpg` with any picture of the same name (on GitHub: open `assets` → **Add file** → **Upload files**), or set `wallpaperImage` in `js/data.js` to another file.
 
 ## Run it locally
 
@@ -73,7 +73,8 @@ js/rain.js          3-layer digital rain on canvas
 js/sound.js         small synthesized sound effects (Web Audio, no audio files)
 js/main.js          boot / log on, desktop icons, Start menu, taskbar, wallpapers, screen saver
 assets/cursors/     2002-style pointers (regenerate with `node tools/make-cursors.js`)
+assets/bliss.jpg    the desktop wallpaper
 assets/wallpaper.jpg hand-drawn green-hill fallback wallpaper (source: tools/wallpaper.svg, render with `node tools/make-wallpaper.js`)
 ```
 
-The icons, cursors and fallback wallpaper are drawn from scratch for this project; the four-colour flag is a homage to the Windows XP logo. This is a personal fan homage to Windows XP and *The Matrix*, with no affiliation to Microsoft or Warner Bros. The original "Bliss" photo is © Microsoft, so this repository does not include it. Add it yourself as described above.
+The icons, cursors and fallback wallpaper are drawn from scratch for this project; the four-colour flag is a homage to the Windows XP logo. This is a personal fan homage to Windows XP and *The Matrix*, with no affiliation to Microsoft or Warner Bros. The "Bliss" photo (`assets/bliss.jpg`) is © Microsoft.
