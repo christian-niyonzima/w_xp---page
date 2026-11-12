@@ -548,7 +548,9 @@
     if (XP.desktop && XP.desktop.isStartOpen && XP.desktop.isStartOpen()) return;
     const w = wins.get(activeId);
     // Only when the keyboard is in that window (or nowhere in particular), not e.g. on the desktop.
-    const here = !document.activeElement || document.activeElement === document.body || (w && w.el.contains(document.activeElement));
+    const a = document.activeElement;
+    // (Focus may still be on what opened it for a split second, before it moves into the dialog.)
+    const here = !a || a === document.body || (w && (w.el.contains(a) || w.opener === a));
     if (w && w.opts.escClose && !w.minimized && here) {
       e.preventDefault();
       close(w.id);
