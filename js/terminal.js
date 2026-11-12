@@ -442,6 +442,7 @@
     vim: { secret: true, alias: ['vi', 'emacs', 'nano'], run: () => ['You are now trapped in an editor forever.', dim(`Just kidding. (${cmd(':q')})`)] },
     reboot: { secret: true, alias: ['restart'], run: () => (setTimeout(() => location.reload(), 900), ['Rebooting the Matrix…']) },
     flip: { secret: true, run: () => (setTimeout(() => exit(() => XP.wm.flip3d()), 250), ['Flipping windows in 3D…']) },
+    minesweeper: { secret: true, alias: ['winmine', 'mines', 'play', 'game', 'games'], run: () => (setTimeout(() => exit(() => XP.open('minesweeper')), 400), ['Loading winmine.exe… mind the mines.']) },
   };
 
   const NAMES = {};

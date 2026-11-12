@@ -67,6 +67,9 @@
     exe: () => doc('exe'),
     pdf: () => doc('pdf'),
     resume: () => doc('cv'),
+    mine: () =>
+      `<rect x="3" y="3" width="42" height="42" rx="3" fill="#c0c0c0" stroke="#7b7b7b"/><path d="M5 43V5h38" fill="none" stroke="#fff" stroke-width="2"/>
+       <path d="M24 9v30M9 24h30M13.4 13.4l21.2 21.2M34.6 13.4L13.4 34.6" stroke="#000" stroke-width="3"/><circle cx="24" cy="24" r="10"/><circle cx="20.5" cy="20.5" r="3" fill="#fff"/>`,
     printer: () => {
       const g = uid();
       return `<defs>${lin(g, [[0, '#f4f4f0'], [1, '#c9c6ba']])}</defs>

@@ -11,6 +11,7 @@ const VIEWS = {
   'web explorer': '/#links',
   help: '/#help',
   search: '/#search',
+  minesweeper: '/#minesweeper',
 };
 
 for (const [name, url] of Object.entries(VIEWS)) {

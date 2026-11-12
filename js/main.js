@@ -116,6 +116,8 @@
         return XP.office.resume(from);
       case 'compose':
         return XP.office.compose(from);
+      case 'minesweeper':
+        return XP.games.minesweeper(from);
       case 'terminal':
         return XP.terminal.enter();
       case 'run':
@@ -149,6 +151,7 @@
     flip: 'flip', flip3d: 'flip', search: 'search',
     resume: 'resume', cv: 'resume', wordpad: 'resume', write: 'resume', print: 'resume',
     msimn: 'compose', outlook: 'compose', mail: 'compose', email: 'compose', message: 'compose',
+    winmine: 'minesweeper', minesweeper: 'minesweeper', mines: 'minesweeper', games: 'minesweeper',
   };
   XP.runCommand = function (raw) {
     const s = raw.trim().toLowerCase().replace(/\.exe$/, '');
@@ -652,6 +655,7 @@
       ['studies', 'folder-studies', 'Studies'],
       ['resume', 'resume', 'Résumé (WordPad)'],
       ['compose', 'compose', 'New Message'],
+      ['minesweeper', 'mine', 'Minesweeper'],
       ['recycle', 'recycle', 'Recycle Bin'],
       ['flip', 'flip', 'Flip 3D'],
       ['display', 'display', 'Display Properties'],
@@ -1028,6 +1032,7 @@
     cv: () => XP.open('resume'),
     message: () => XP.open('compose'),
     help: () => XP.open('help'),
+    minesweeper: () => XP.open('minesweeper'),
   };
 
   /** Mirror the current view in the address bar (#projects/xp-career-desktop) without adding history. */

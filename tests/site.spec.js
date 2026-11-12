@@ -132,6 +132,24 @@ test('Display Properties is single-instance and changes the wallpaper', async ({
   expect(errors).toEqual([]);
 });
 
+test('Minesweeper: the first click is always safe, flags count down', async ({ page, isMobile }) => {
+  const errors = await prepare(page);
+  await page.goto('/#minesweeper');
+  await expect(page.locator('.ms-cell')).toHaveCount(81);
+  await page.locator('.ms-cell[data-i="40"]').click();
+  await expect(page.locator('.ms-cell.is-open').first()).toBeVisible();
+  await expect(page.locator('.ms-cell.is-boom')).toHaveCount(0);
+  const hidden = page.locator('.ms-cell:not(.is-open)').first();
+  if (isMobile) {
+    await page.locator('.ms-flagmode').click();
+    await hidden.click();
+  } else await hidden.click({ button: 'right' });
+  await expect(page.locator('[data-led="mines"]')).toHaveText('009');
+  await page.locator('.ms-face').click();
+  await expect(page.locator('.ms-cell.is-open')).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
 test.describe('keyboard', () => {
   test.skip(({ isMobile }) => isMobile, 'keyboard flows are for desktop');
 

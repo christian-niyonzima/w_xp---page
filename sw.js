@@ -14,6 +14,7 @@ const CORE = [
   'js/wm.js',
   'js/apps.js',
   'js/office.js',
+  'js/games.js',
   'js/terminal.js',
   'js/main.js',
   'assets/bliss.jpg',

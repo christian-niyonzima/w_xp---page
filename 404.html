@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>The page cannot be found · Christian XP</title>
+    <meta name="robots" content="noindex" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath d='M6.5 12.5C12 9.8 18 9.8 24 12.2l-1.2 11.2C16.8 21 10.8 21 5.2 23.8z' fill='%23f25022'/%3E%3Cpath d='M25.6 12.8c5.9 2.5 11.9 2.5 17.9-.2l-1.3 11.3c-6 2.7-12 2.7-17.8.1z' fill='%237fba00'/%3E%3Cpath d='M5 25.4c5.6-2.8 11.6-2.8 17.6-.4l-1.2 11.2c-6-2.4-12-2.4-17.7.4z' fill='%2300a4ef'/%3E%3Cpath d='M24.2 25.6c5.8 2.6 11.8 2.6 17.8-.1l-1.3 11.3c-6 2.7-12 2.7-17.7 0z' fill='%23ffb900'/%3E%3C/svg%3E" />
+    <style>
+      /* A homage to the 2002 "The page cannot be found" error page. Self-contained on purpose:
+         it is served for any wrong address, at any depth, so it cannot rely on relative files. */
+      body {
+        margin: 0;
+        padding: 24px 28px;
+        font: 13px/1.5 Tahoma, Verdana, "Segoe UI", sans-serif;
+        color: #000;
+        background: #fff;
+      }
+      .box {
+        max-width: 620px;
+      }
+      h1 {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 0 0 6px;
+        font: 700 18px Tahoma, Verdana, sans-serif;
+      }
+      hr {
+        border: 0;
+        border-top: 1px solid #c0c0c0;
+        margin: 14px 0;
+      }
+      .ico {
+        flex: none;
+      }
+      ul {
+        padding-left: 22px;
+      }
+      li {
+        margin: 6px 0;
+      }
+      a {
+        color: #0000ee;
+      }
+      .tech {
+        color: #555;
+        font-size: 12px;
+      }
+      code {
+        font: 12px Consolas, "Lucida Console", monospace;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="box">
+      <h1>
+        <svg class="ico" width="40" height="40" viewBox="0 0 48 48" aria-hidden="true">
+          <circle cx="24" cy="24" r="20" fill="#2a6fd6" stroke="#0a3fb8" stroke-width="2" />
+          <rect x="21.5" y="20" width="5" height="16" rx="1.5" fill="#fff" />
+          <circle cx="24" cy="13.5" r="3.2" fill="#fff" />
+        </svg>
+        The page cannot be found
+      </h1>
+      <p>The page you are looking for might have been removed, had its name changed, or is temporarily unavailable. Or it never existed. It happens to the best of us.</p>
+      <hr />
+      <p>Please try the following:</p>
+      <ul>
+        <li>Make sure the address in the address bar is spelled correctly.</li>
+        <li>Open the <a class="home" href="/">desktop home page</a>, and then look for the folders you want.</li>
+        <li>In a hurry? Go straight to the <a class="home" data-hash="resume" href="/">printable résumé</a>, or <a class="home" data-hash="terminal" href="/">jack into the terminal</a>.</li>
+        <li>Click the <a href="javascript:history.back()">Back</a> button to try another link.</li>
+      </ul>
+      <hr />
+      <p class="tech">HTTP 404 - File not found<br />Christian XP Career Edition</p>
+      <p class="tech">Technical information (for support personnel): <code id="where"></code></p>
+    </div>
+    <script>
+      // Project sites on GitHub Pages live under /<repository>/: send links there, not to the domain root.
+      (function () {
+        var seg = location.pathname.split('/')[1];
+        var base = /\.github\.io$/.test(location.hostname) && seg ? '/' + seg + '/' : '/';
+        document.querySelectorAll('a.home').forEach(function (a) {
+          a.href = base + (a.getAttribute('data-hash') ? '#' + a.getAttribute('data-hash') : '');
+        });
+        document.getElementById('where').textContent = location.pathname;
+      })();
+    </script>
+  </body>
+</html>
