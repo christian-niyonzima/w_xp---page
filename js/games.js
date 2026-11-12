@@ -40,7 +40,8 @@
   function open(from) {
     if (XP.wm.get('mines')) return XP.wm.restore('mines');
     const touch = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches);
-    let level = LEVELS[store.get('xp:mines:level', 'beginner')] ? store.get('xp:mines:level', 'beginner') : 'beginner';
+    const saved = store.get('xp:mines:level', 'beginner');
+    let level = Object.prototype.hasOwnProperty.call(LEVELS, saved) ? saved : 'beginner';
     if (XP.mobile() && level === 'expert') level = 'intermediate';
 
     const root = XP.html(`<div class="ms">
@@ -67,18 +68,47 @@
       faceNow = k;
       faceBtn.innerHTML = face(k);
     };
-    const led = (k, n) => (root.querySelector(`[data-led="${k}"]`).textContent = String(Math.max(-99, Math.min(999, n))).padStart(3, '0'));
+    const led = (k, n) => {
+      const v = Math.max(-99, Math.min(999, n)); // too many flags shows "-02", like the original
+      root.querySelector(`[data-led="${k}"]`).textContent = v < 0 ? '-' + String(-v).padStart(2, '0') : String(v).padStart(3, '0');
+    };
     const say = (t) => (root.querySelector('.ms-live').textContent = t);
 
     let cells = [];
-    let L, started, over, flags, opened, timer, t0, flagMode = false, focusIdx = 0;
+    let L, started, over, flags, opened, timer, winT, t0, flagMode = false, focusIdx = 0;
 
-    const win = XP.wm.open({ id: 'mines', title: 'Minesweeper', icon: 'mine', content: root, width: 240, height: 'auto', resizable: false, from, className: 'win-mines', onClose: () => clearInterval(timer) });
+    const onPointerUp = () => !over && setFace('smile');
+    const win = XP.wm.open({
+      id: 'mines',
+      title: 'Minesweeper',
+      icon: 'mine',
+      content: root,
+      width: 240,
+      height: 'auto',
+      resizable: false,
+      from,
+      className: 'win-mines',
+      hash: 'minesweeper',
+      onClose: () => {
+        clearInterval(timer);
+        clearTimeout(winT);
+        window.removeEventListener('pointerup', onPointerUp);
+        window.removeEventListener('pointercancel', onPointerUp);
+      },
+    });
 
+    /** Fit the window to the board and keep it fully on screen (it grows when the level changes). */
     function size() {
       const cell = XP.mobile() ? Math.floor(Math.min(34, (window.innerWidth - 44) / L.cols)) : 22;
       root.style.setProperty('--ms-cell', cell + 'px');
-      if (!win.maximized) win.el.style.width = L.cols * cell + 34 + 'px';
+      if (win.maximized) return;
+      const el = win.el;
+      const area = el.parentElement;
+      el.style.width = L.cols * cell + 34 + 'px';
+      const maxL = Math.max(0, area.clientWidth - el.offsetWidth);
+      const maxT = Math.max(0, area.clientHeight - el.offsetHeight);
+      el.style.left = (XP.mobile() ? maxL / 2 : Math.min(Math.max(0, el.offsetLeft), maxL)) + 'px';
+      el.style.top = Math.min(Math.max(0, el.offsetTop), maxT) + 'px';
     }
 
     function neighbours(i) {
@@ -111,6 +141,8 @@
       }
       L = LEVELS[level];
       clearInterval(timer);
+      clearTimeout(winT);
+      const hadFocus = grid.contains(document.activeElement);
       started = over = false;
       flags = opened = 0;
       focusIdx = 0;
@@ -137,6 +169,7 @@
       });
       cells.forEach((_, i) => paint(i));
       size();
+      if (hadFocus) cells[0].el.focus(); // F2 / new game keeps the keyboard on the board
       say(`New ${L.label} game: ${L.cols} by ${L.rows}, ${L.mines} mines.`);
     }
 
@@ -226,12 +259,13 @@
       const record = !best || secs < best;
       if (record) store.set(key, secs);
       say(`You win in ${secs} seconds!`);
-      setTimeout(
+      const name = L.label.toLowerCase();
+      winT = setTimeout(
         () =>
           XP.dialog({
             title: record ? 'Best Time' : 'Minesweeper',
             icon: 'info',
-            message: `${record ? `You have the fastest time for ${L.label.toLowerCase()} level!` : 'Cleared!'}<br><br>Time: <b>${secs} seconds</b>${!record ? `<br>Best: ${best} seconds` : ''}<br><br>Clearing minefields is fun. Clearing bugs is ${esc(window.PROFILE.firstName)}'s day job.`,
+            message: `${record ? `You have the fastest time for ${name} level!` : 'Cleared!'}<br><br>Time: <b>${secs} seconds</b>${!record ? `<br>Best: ${best} seconds` : ''}<br><br>Clearing minefields is fun. Clearing bugs is ${esc(window.PROFILE.firstName)}'s day job.`,
           }),
         450
       );
@@ -264,10 +298,8 @@
       cells[i].open ? chord(i) : flag(i);
     });
     grid.addEventListener('pointerdown', (e) => !over && e.button === 0 && at(e) >= 0 && setFace('oh'));
-    window.addEventListener('pointerup', function up() {
-      if (!root.isConnected) return window.removeEventListener('pointerup', up);
-      if (!over) setFace('smile');
-    });
+    window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('pointercancel', onPointerUp); // a touch that became a scroll
     grid.addEventListener('keydown', (e) => {
       const i = at(e);
       if (i < 0) return;
@@ -280,13 +312,15 @@
       } else if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
         reveal(i);
-        say(label(i));
-      } else if (e.key === 'f' || e.key === 'F') {
+        if (!over) say(label(i)); // keep the win / boom message when the game just ended
+      } else if ((e.key === 'f' || e.key === 'F') && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.preventDefault();
         flag(i);
         say(label(i));
       }
     });
+    // Some browsers (Firefox) still "click" a button when Space is released.
+    grid.addEventListener('keyup', (e) => e.key === ' ' && at(e) >= 0 && e.preventDefault());
     function focusCell(i) {
       cells[focusIdx].el.tabIndex = -1;
       focusIdx = i;

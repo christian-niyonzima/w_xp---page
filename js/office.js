@@ -158,12 +158,14 @@
     });
     // Enter in the subject moves on to the message (it must not send half a mail);
     // Ctrl+Enter anywhere sends, as in Outlook Express.
-    content.querySelector('.oe-subject').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey) {
-        e.preventDefault();
-        text.focus();
-      }
-    });
+    content.querySelectorAll('.oe-fields input').forEach((input) =>
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey) {
+          e.preventDefault();
+          text.focus();
+        }
+      })
+    );
     content.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();

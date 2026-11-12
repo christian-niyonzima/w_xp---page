@@ -296,6 +296,15 @@
     return out;
   }
 
+  /** Unplug, then do something on the desktop. Still happens if the visitor pressed Esc meanwhile. */
+  function leaveThen(fn, delay) {
+    setTimeout(function go() {
+      if (moving) return setTimeout(go, 150);
+      if (active) exit(fn);
+      else fn();
+    }, delay);
+  }
+
   /* ---------- commands ---------- */
   const OPEN = {
     about: 'about', about_me: 'about', me: 'about', profile: 'about',
@@ -321,7 +330,7 @@
     resume: {
       alias: ['cv', 'résumé'],
       run: () => {
-        setTimeout(() => exit(() => XP.open('resume')), 450);
+        leaveThen(() => XP.open('resume'), 450);
         return ['Unplugging… opening the printable résumé on the desktop.', ...(P.resume ? [dim('or grab the PDF → ') + link(P.resume, P.resume.split('/').pop())] : [])];
       },
     },
@@ -329,7 +338,7 @@
       alias: ['write', 'msg', 'compose'],
       run: () => {
         if (!XP.email()) return [dim('E-mail is not set up yet. Try ') + cmd('links') + dim(' instead.')];
-        setTimeout(() => exit(() => XP.open('compose')), 450);
+        leaveThen(() => XP.open('compose'), 450);
         return ['Unplugging… opening a new message to ' + hi(esc(P.firstName)) + '.'];
       },
     },
@@ -365,9 +374,9 @@
           XP.openUrl(out.url);
           return [`Opening ${esc(out.label)}…`];
         }
-        const to = OPEN[what];
+        const to = XP.own(OPEN, what) ? OPEN[what] : null;
         if (!to) return [warn(`open: don't know how to open '${esc(what || '')}'.`), dim('  try: ') + ['about', 'projects', 'experience', 'studies', 'browser', 'linkedin'].map((x) => cmd('open ' + x, x)).join(' ')];
-        setTimeout(() => exit(() => to !== 'desktop' && XP.open(to)), 350);
+        leaveThen(() => to !== 'desktop' && XP.open(to), 350);
         return [`Unplugging… opening ${hi(esc(what))} on the desktop.`];
       },
     },
@@ -443,11 +452,11 @@
     xp: { secret: true, alias: ['windows', 'win'], run: () => ['Ah, Windows XP. Bliss wallpaper, the start button, the sound of a dial-up modem…', dim(`Back to it → ${cmd('exit')}`)] },
     vim: { secret: true, alias: ['vi', 'emacs', 'nano'], run: () => ['You are now trapped in an editor forever.', dim(`Just kidding. (${cmd(':q')})`)] },
     reboot: { secret: true, alias: ['restart'], run: () => (setTimeout(() => location.reload(), 900), ['Rebooting the Matrix…']) },
-    flip: { secret: true, run: () => (setTimeout(() => exit(() => XP.wm.flip3d()), 250), ['Flipping windows in 3D…']) },
-    minesweeper: { secret: true, alias: ['winmine', 'mines', 'play', 'game', 'games'], run: () => (setTimeout(() => exit(() => XP.open('minesweeper')), 400), ['Loading winmine.exe… mind the mines.']) },
+    flip: { secret: true, run: () => (leaveThen(() => XP.wm.flip3d(), 250), ['Flipping windows in 3D…']) },
+    minesweeper: { secret: true, alias: ['winmine', 'mines', 'play', 'game', 'games'], run: () => (leaveThen(() => XP.open('minesweeper'), 400), ['Loading winmine.exe… mind the mines.']) },
   };
 
-  const NAMES = {};
+  const NAMES = Object.create(null); // no inherited keys: "constructor" is just an unknown command
   Object.entries(COMMANDS).forEach(([k, c]) => {
     NAMES[k] = k;
     (c.alias || []).forEach((a) => (NAMES[a] = k));

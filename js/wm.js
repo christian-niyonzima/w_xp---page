@@ -37,6 +37,8 @@
     return t.content.firstElementChild;
   };
   XP.wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  /** Own-property lookup: typed or stored names such as "constructor" must not match Object built-ins. */
+  XP.own = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key);
 
   /* Was the last interaction a key press? Menus then highlight their first item, like XP. */
   let lastInput = 'pointer';

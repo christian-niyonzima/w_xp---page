@@ -282,6 +282,55 @@ test('unknown addresses get the XP-style 404 page', async ({ page }) => {
   await expect(page.locator('a.home').first()).toHaveAttribute('href', '/');
 });
 
+test.describe('regressions (round 2)', () => {
+  test('Minesweeper: too many flags reads -01, and Ctrl+F does not flag', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'right-click flags are a desktop thing');
+    await prepare(page);
+    await page.goto('/#minesweeper');
+    for (let i = 0; i < 11; i++) await page.locator(`.ms-cell[data-i="${i}"]`).click({ button: 'right' });
+    await expect(page.locator('[data-led="mines"]')).toHaveText('-01');
+    await page.locator('.ms-cell[data-i="80"]').focus();
+    await page.keyboard.press('Control+f');
+    await expect(page.locator('.ms-cell[data-i="80"] svg')).toHaveCount(0);
+  });
+
+  test('Minesweeper: F2 keeps the keyboard on the board, and the window stays on screen', async ({ page, isMobile }) => {
+    await prepare(page);
+    await page.goto('/#minesweeper');
+    if (!isMobile) {
+      await page.locator('.ms-cell[data-i="10"]').focus();
+      await page.keyboard.press('F2');
+      await expect(page.locator('.ms-cell[data-i="0"]')).toBeFocused();
+    }
+    await page.evaluate(() => localStorage.setItem('xp:mines:level', 'intermediate'));
+    await page.locator('.win-mines .tb-close').click();
+    await page.evaluate(() => XP.open('minesweeper'));
+    const box = await page.locator('.win-mines').boundingBox();
+    const vw = page.viewportSize().width;
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(vw + 1);
+  });
+
+  test('"constructor" is just an unknown terminal command', async ({ page }) => {
+    const errors = await prepare(page);
+    await page.goto('/#terminal');
+    await expect(page.locator('.term-input')).toBeFocused({ timeout: 5000 });
+    await page.keyboard.press('x');
+    await expect(page.locator('.t-callout')).toBeVisible({ timeout: 5000 });
+    await page.keyboard.type('constructor');
+    await page.keyboard.press('Enter');
+    await expect(page.locator('.term-out')).toContainText('command not found: constructor');
+    expect(errors).toEqual([]);
+  });
+
+  test('the dev server refuses paths outside the project and survives odd ones', async ({ request }) => {
+    expect((await request.get('/..%2f..%2fetc%2fpasswd')).status()).toBe(403);
+    expect((await request.get('/..%2fw_xp---page-secret%2fx.txt')).status()).toBe(403); // look-alike sibling folder
+    expect((await request.get('/a%00b')).status()).toBe(403);
+    expect((await request.get('/')).status()).toBe(200);
+  });
+});
+
 test('js/data.js passes the profile check', () => {
   const vm = require('vm');
   const fs = require('fs');

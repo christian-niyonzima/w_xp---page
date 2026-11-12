@@ -40,11 +40,13 @@ http
       return;
     }
     let file = path.normalize(path.join(ROOT, rel));
-    if (!file.startsWith(ROOT)) {
+    if (rel.includes('\0') || (file !== ROOT && !file.startsWith(ROOT + path.sep))) {
       res.writeHead(403).end('Forbidden');
       return;
     }
-    if (fs.existsSync(file) && fs.statSync(file).isDirectory()) file = path.join(file, 'index.html');
+    try {
+      if (fs.statSync(file).isDirectory()) file = path.join(file, 'index.html');
+    } catch (e) {} // missing: answered with 404.html below
     fs.readFile(file, (err, data) => {
       if (err) {
         // Like GitHub Pages: unknown addresses get 404.html.

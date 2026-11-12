@@ -76,13 +76,22 @@
       <p class="tech">Technical information (for support personnel): <code id="where"></code></p>
     </div>
     <script>
-      // Project sites on GitHub Pages live under /<repository>/: send links there, not to the domain root.
+      // Project sites on GitHub Pages live under /<repository>/, user sites at the root. Links start
+      // at the root and switch to /<first folder>/ if the site's manifest is found there.
       (function () {
+        var setBase = function (base) {
+          document.querySelectorAll('a.home').forEach(function (a) {
+            a.href = base + (a.getAttribute('data-hash') ? '#' + a.getAttribute('data-hash') : '');
+          });
+        };
+        setBase('/');
         var seg = location.pathname.split('/')[1];
-        var base = /\.github\.io$/.test(location.hostname) && seg ? '/' + seg + '/' : '/';
-        document.querySelectorAll('a.home').forEach(function (a) {
-          a.href = base + (a.getAttribute('data-hash') ? '#' + a.getAttribute('data-hash') : '');
-        });
+        if (seg && window.fetch)
+          fetch('/' + seg + '/manifest.webmanifest', { method: 'HEAD' })
+            .then(function (r) {
+              if (r.ok) setBase('/' + seg + '/');
+            })
+            .catch(function () {});
         document.getElementById('where').textContent = location.pathname;
       })();
     </script>

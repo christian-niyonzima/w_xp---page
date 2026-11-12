@@ -156,7 +156,7 @@
   XP.runCommand = function (raw) {
     const s = raw.trim().toLowerCase().replace(/\.exe$/, '');
     if (s === 'winver') return XP.apps.about(), true;
-    if (RUN[s]) return XP.open(RUN[s]), true;
+    if (XP.own(RUN, s)) return XP.open(RUN[s]), true;
     const link = XP.links().find((l) => l.id === s || l.label.toLowerCase() === s);
     if (link) return XP.openUrl(link.url), true;
     if (/^https?:\/\//.test(s) || /^www\./.test(s) || /^[^\s]+\.[a-z]{2,}$/.test(s)) return XP.apps.browser(null, raw.trim()), true;
@@ -277,7 +277,7 @@
   };
   let wallRain = null;
   function setWallpaper(name) {
-    if (!WALLPAPERS[name]) name = 'bliss';
+    if (!XP.own(WALLPAPERS, name)) name = 'bliss';
     store.set('xp:wallpaper', name);
     const w = WALLPAPERS[name];
     $('#wallpaper').style.background = w.css();
@@ -289,7 +289,7 @@
       wallRain.start();
     } else if (wallRain) wallRain.stop();
   }
-  const wallpaper = () => (WALLPAPERS[store.get('xp:wallpaper', 'bliss')] ? store.get('xp:wallpaper', 'bliss') : 'bliss');
+  const wallpaper = () => (XP.own(WALLPAPERS, store.get('xp:wallpaper', 'bliss')) ? store.get('xp:wallpaper', 'bliss') : 'bliss');
 
   /* ==================================================================
    * Desktop icons
@@ -1054,8 +1054,8 @@
       raw = decodeURIComponent(raw);
     } catch (e) {} // a stray "%" in a shared link must not stop the page from starting
     const [name, id] = raw.toLowerCase().split('/');
-    let r = ROUTES[name];
-    if (r && id && XP.apps.FOLDERS[name]) r = () => XP.apps.folder({ kind: 'item', key: name, id });
+    let r = XP.own(ROUTES, name) ? ROUTES[name] : null;
+    if (r && id && XP.own(XP.apps.FOLDERS, name)) r = () => XP.apps.folder({ kind: 'item', key: name, id });
     if (!r) return false;
     if (XP.terminal.active && name !== 'terminal' && name !== 'matrix') {
       // Leave the terminal first; if it is mid-animation, wait for that to finish.
