@@ -1,0 +1,26 @@
+{
+  "name": "christian-xp",
+  "version": "2.0.0",
+  "private": true,
+  "description": "A career landing page disguised as a Windows XP desktop, with a Matrix terminal hidden inside.",
+  "license": "UNLICENSED",
+  "scripts": {
+    "start": "node tools/serve.js",
+    "check": "node tools/check-profile.js",
+    "lint": "eslint .",
+    "test": "playwright test",
+    "verify": "npm run check && npm run lint && npm test",
+    "images": "node tools/make-share-images.js",
+    "cursors": "node tools/make-cursors.js",
+    "wallpaper": "node tools/make-wallpaper.js"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.65.0",
+    "eslint": "^10.14.0",
+    "globals": "^17.14.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

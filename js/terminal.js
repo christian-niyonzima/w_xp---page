@@ -71,7 +71,8 @@
         row('skills', "what I'm good at"),
         row('contact', 'how to reach me'),
         row('links', 'LinkedIn, GitHub & more'),
-        ...(P.resume ? [row('resume', 'grab my resume')] : []),
+        row('resume', 'printable résumé (print or save as PDF)'),
+        ...(XP.email() ? [row('message', 'write me an e-mail')] : []),
         '',
         hi('  explore'),
         row('ls', 'list files (try: ls, cd projects, cat …)', 'ls / cd / cat'),
@@ -93,7 +94,7 @@
         ...title('Profile'),
         `  ${pad('name', 10)}${hi(esc(P.name))}`,
         `  ${pad('role', 10)}${esc(P.title)}`,
-        `  ${pad('location', 10)}${esc(P.location)}`,
+        ...(XP.real(P.location) ? [`  ${pad('location', 10)}${esc(P.location)}`] : []),
         ...(P.status ? [`  ${pad('status', 10)}<span class="t-ok">●</span> ${esc(P.status)}`] : []),
         '',
         `  <span class="t-quote">"${esc(P.tagline)}"</span>`,
@@ -157,7 +158,7 @@
     contact() {
       return [
         ...title('Contact'),
-        ...(P.email ? [`  ${pad('email', 10)}${link('mailto:' + P.email, P.email)}`] : []),
+        ...(XP.email() ? [`  ${pad('email', 10)}${link('mailto:' + XP.email(), XP.email())}`] : []),
         ...XP.links()
           .filter((l) => !/^mailto:/i.test(l.url))
           .map((l) => `  ${esc(pad(l.label.toLowerCase(), 10))}${link(l.url, l.url.replace(/^https?:\/\/(www\.)?/, ''))}`),
@@ -311,11 +312,18 @@
     contact: { alias: ['email', 'mail', 'hire'], run: L.contact },
     links: { alias: ['social', 'socials', 'link'], run: L.links },
     resume: {
-      alias: ['cv'],
+      alias: ['cv', 'résumé'],
       run: () => {
-        if (!P.resume) return [dim('No resume uploaded yet. Meanwhile: ') + cmd('links') + dim(' or ') + cmd('contact')];
-        XP.openUrl(P.resume);
-        return ['Opening resume in a new tab… ' + link(P.resume, 'click here if it did not open')];
+        setTimeout(() => exit(() => XP.open('resume')), 450);
+        return ['Unplugging… opening the printable résumé on the desktop.', ...(P.resume ? [dim('or grab the PDF → ') + link(P.resume, P.resume.split('/').pop())] : [])];
+      },
+    },
+    message: {
+      alias: ['write', 'msg', 'compose'],
+      run: () => {
+        if (!XP.email()) return [dim('E-mail is not set up yet. Try ') + cmd('links') + dim(' instead.')];
+        setTimeout(() => exit(() => XP.open('compose')), 450);
+        return ['Unplugging… opening a new message to ' + hi(esc(P.firstName)) + '.'];
       },
     },
     ls: { alias: ['dir', 'll'], run: (a) => lsLines(a.filter((x) => !x.startsWith('-'))[0], (a.find((x) => x.startsWith('-')) || '') + (a._name === 'll' ? 'la' : '')) },
@@ -366,7 +374,10 @@
         const rgb = rain.setColor(c);
         if (!rgb) return [warn(`color: unknown colour '${esc(c)}'. Options: `) + XP.MatrixRain.colors().map((x) => cmd('color ' + x, x)).join(' ')];
         document.documentElement.style.setProperty('--mx-rgb', rgb.join(','));
-        return [`The Matrix is now ${hi(esc(c))}.`];
+        try {
+          localStorage.setItem('xp:mxColor', c);
+        } catch (e) {}
+        return [`The Matrix is now ${hi(esc(c))}. ${dim('(remembered for next time)')}`];
       },
     },
     exit: { alias: ['quit', 'logout', 'q', ':q', 'desktop', 'unplug'], run: () => (setTimeout(() => exit(), 250), ['Unplugging…']) },
@@ -621,6 +632,18 @@
   }
 
   function onKey(e) {
+    // While the intro plays, a key press only skips it: it must not end up in the prompt.
+    if (!booted) {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        return exit();
+      }
+      if (!e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        skip = true;
+      }
+      return;
+    }
     if (busy) skip = true;
     if (e.key === 'Escape' || (e.key === '`' && !el.input.value)) {
       e.preventDefault();
@@ -709,6 +732,8 @@
     await pause(650);
     clear();
     busy = false;
+    // From here on the prompt is live: what the visitor types counts (and skips the typing effect).
+    booted = true;
     await print([banner(P.firstName)], { instant: true });
     await print([
       dim(`${esc(host.toUpperCase())} // career construct v2.0 · secure connection established`),
@@ -717,7 +742,6 @@
       '',
       `<span class="t-callout">→ Type ${cmd('help')} and press <span class="t-key">ENTER</span> to see what you can do.</span>`,
     ]);
-    booted = true;
     idleHint();
   }
 
@@ -741,15 +765,24 @@
       chips: root.querySelector('.term-chips'),
     };
     rain = new XP.MatrixRain(root.querySelector('.matrix-rain'));
+    try {
+      const saved = rain.setColor(localStorage.getItem('xp:mxColor'));
+      if (saved) document.documentElement.style.setProperty('--mx-rgb', saved.join(','));
+    } catch (e) {}
     if (XP.mobile()) el.ghost.textContent = 'type help ↵';
     updatePrompt();
     renderInput();
 
-    const chipList = ['help', 'about', 'experience', 'projects', 'studies', 'skills', 'contact', 'links', 'exit'];
+    const chipList = ['help', 'about', 'experience', 'projects', 'studies', 'skills', 'contact', 'resume', 'links', 'exit'];
     el.chips.innerHTML = chipList.map((c) => `<button class="chip${c === 'help' ? ' chip-help' : ''}" data-cmd="${c}">${c}</button>`).join('');
 
     el.input.addEventListener('keydown', onKey);
     el.input.addEventListener('input', () => {
+      // Phone keyboards may skip keydown: same rule, the intro swallows what is typed.
+      if (!booted) {
+        skip = true;
+        el.input.value = '';
+      }
       renderInput();
       clearTimeout(idleT);
       if (!el.input.value) idleHint();
@@ -761,6 +794,7 @@
       const c = e.target.closest('[data-cmd]');
       if (c) return runClicked(c.dataset.cmd);
       if (e.target.closest('a, .term-exit')) return;
+      if (!booted) skip = true; // a tap skips the intro too
       if (!String(window.getSelection())) focusInput();
     });
     root.addEventListener('keydown', (e) => {
@@ -783,6 +817,7 @@
     }
     moving = true;
     active = true;
+    if (XP.setHash) XP.setHash('terminal');
     XP.closeMenu && XP.closeMenu();
     XP.desktop && XP.desktop.closeStart && XP.desktop.closeStart();
     const desk = document.getElementById('screen-desktop');
@@ -861,6 +896,7 @@
     rain.stop();
     active = false;
     moving = false;
+    XP.wm.syncHash();
     XP.desktop && XP.desktop.afterMatrix();
     if (typeof then === 'function') then();
   }

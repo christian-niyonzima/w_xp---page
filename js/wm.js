@@ -38,6 +38,13 @@
   };
   XP.wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
+  /* Was the last interaction a key press? Menus then highlight their first item, like XP. */
+  let lastInput = 'pointer';
+  document.addEventListener('keydown', () => (lastInput = 'key'), true);
+  document.addEventListener('pointerdown', () => (lastInput = 'pointer'), true);
+  XP.byKeyboard = () => lastInput === 'key';
+  const usable = (n) => n && n.isConnected && n !== document.body && n.offsetParent !== null;
+
   /** Web Animations wrapper that becomes a no-op when the user prefers reduced motion. */
   XP.animate = (el, frames, opts = {}) => {
     if (!XP.motion() || !el || !el.animate) return { finished: Promise.resolve(), cancel() {} };
@@ -46,6 +53,42 @@
     return a;
   };
   XP.settle = (...anims) => Promise.all(anims.map((a) => a.finished.catch(() => {})));
+
+  /**
+   * Arrow-key navigation over a set of items laid out in 2D (desktop icons, folder tiles,
+   * menus). Moves focus to the nearest item in the pressed direction; returns true if handled.
+   */
+  XP.arrowNav = (e, items, current) => {
+    const dirs = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+    const d = dirs[e.key];
+    if (!d && e.key !== 'Home' && e.key !== 'End') return false;
+    const list = items.filter((x) => x.offsetParent !== null && !x.disabled);
+    if (!list.length) return false;
+    let next = null;
+    if (e.key === 'Home') next = list[0];
+    else if (e.key === 'End') next = list[list.length - 1];
+    else {
+      const c = current.getBoundingClientRect();
+      const cx = c.left + c.width / 2, cy = c.top + c.height / 2;
+      let best = Infinity;
+      list.forEach((x) => {
+        if (x === current) return;
+        const r = x.getBoundingClientRect();
+        const dx = r.left + r.width / 2 - cx, dy = r.top + r.height / 2 - cy;
+        const along = dx * d[0] + dy * d[1];
+        if (along <= 2) return; // not in that direction
+        const across = Math.abs(dx * d[1]) + Math.abs(dy * d[0]);
+        const score = along + across * 2.5;
+        if (score < best) {
+          best = score;
+          next = x;
+        }
+      });
+    }
+    e.preventDefault();
+    if (next) next.focus();
+    return true;
+  };
 
   /** Briefly show the XP "working in background" cursor. */
   XP.busy = (ms = 600) => {
@@ -74,7 +117,8 @@
     }
 
     const resizable = o.resizable !== false;
-    const el = XP.html(`<div class="window ${o.className || ''}" role="dialog" aria-label="${XP.esc(o.title)}">
+    const opener = document.activeElement;
+    const el = XP.html(`<div class="window ${o.className || ''}" role="dialog" aria-label="${XP.esc(o.title)}" tabindex="-1">
       <div class="titlebar">
         <span class="tb-icon">${XP.icon(o.icon || 'folder', 16)}</span>
         <span class="tb-title">${XP.esc(o.title)}</span>
@@ -104,11 +148,11 @@
     el.style.left = Math.round(x) + 'px';
     el.style.top = Math.round(y) + 'px';
 
-    const win = { id, el, body, title: o.title, icon: o.icon, minimized: false, maximized: false, opts: o };
+    const win = { id, el, body, title: o.title, icon: o.icon, minimized: false, maximized: false, opts: o, opener: usable(opener) ? opener : null };
     wins.set(id, win);
 
     if (o.taskbar !== false) {
-      win.btn = XP.html(`<button class="task-btn" title="${XP.esc(o.title)}">${XP.icon(o.icon || 'folder', 16)}<span>${XP.esc(o.title)}</span></button>`);
+      win.btn = XP.html(`<button class="task-btn" aria-pressed="false" title="${XP.esc(o.title)}">${XP.icon(o.icon || 'folder', 16)}<span>${XP.esc(o.title)}</span></button>`);
       win.btn.addEventListener('click', () => taskClick(id));
       bar().appendChild(win.btn);
     }
@@ -116,6 +160,8 @@
     wire(win);
     if ((XP.mobile() && resizable) || o.maximized) maximize(id, false);
     focus(id);
+    // Keyboard and screen-reader users land inside the new window (apps may move focus further in).
+    requestAnimationFrame(() => !el.contains(document.activeElement) && el.isConnected && el.focus({ preventScroll: true }));
 
     // Sweep out of the icon that opened it (or a soft zoom-in when there is no icon).
     const r = el.getBoundingClientRect();
@@ -247,8 +293,20 @@
     wins.forEach((w) => {
       const on = w === win;
       w.el.classList.toggle('is-inactive', !on);
-      if (w.btn) w.btn.classList.toggle('is-active', on && !w.minimized);
+      if (w.btn) {
+        w.btn.classList.toggle('is-active', on && !w.minimized);
+        w.btn.setAttribute('aria-pressed', String(on && !w.minimized));
+      }
     });
+    syncHash();
+  }
+
+  /** Keep the address bar's #hash in step with the window in front, so any view can be shared. */
+  function syncHash() {
+    if (!XP.setHash || (XP.terminal && XP.terminal.active)) return;
+    const w = wins.get(activeId);
+    if (w && /\bis-dialog\b/.test(w.opts.className || '')) return; // message boxes leave it alone
+    XP.setHash(w && !w.minimized && w.opts.hash ? w.opts.hash : '');
   }
 
   function focusTop() {
@@ -260,6 +318,7 @@
     else {
       activeId = null;
       wins.forEach((w) => w.btn && w.btn.classList.remove('is-active'));
+      syncHash();
     }
   }
 
@@ -294,9 +353,14 @@
       ],
       { duration: 300, easing: XP.EASE_IN }
     );
+    const hadFocus = win.el.contains(document.activeElement);
     await XP.settle(a);
     if (win.minimized) win.el.classList.add('is-min');
     focusTop();
+    if (hadFocus) {
+      const top = wins.get(activeId);
+      (top ? top.el : win.btn || document.getElementById('start-btn')).focus({ preventScroll: true });
+    }
   }
 
   function restore(id) {
@@ -316,6 +380,7 @@
       );
     }
     focus(id);
+    if (!win.el.contains(document.activeElement)) win.el.focus({ preventScroll: true });
   }
 
   async function close(id) {
@@ -323,6 +388,7 @@
     if (!win || win.closing) return;
     if (win.opts.onClose && win.opts.onClose() === false) return;
     win.closing = true;
+    const hadFocus = win.el.contains(document.activeElement);
     wins.delete(id);
     if (win.btn) win.btn.remove();
     XP.sound.play('close');
@@ -334,7 +400,18 @@
       ],
       { duration: 180, easing: XP.EASE_IN }
     );
+    win.el.style.pointerEvents = 'none';
     focusTop();
+    if (hadFocus) {
+      // Give focus back to whatever opened the window (raising its window too), or else to
+      // the window now on top.
+      const top = wins.get(activeId);
+      const back = usable(win.opener) && !win.el.contains(win.opener) ? win.opener : top ? top.el : null;
+      const owner = back && [...wins.values()].find((w) => w.el.contains(back));
+      if (owner) focus(owner.id);
+      if (back) back.focus({ preventScroll: true });
+      else document.activeElement.blur();
+    }
     await XP.settle(a);
     win.el.remove();
   }
@@ -458,14 +535,27 @@
     flipping = { finish: () => finish(order[0]) };
   }
 
+  /* Esc closes small dialog windows (message boxes, Run, Display Properties), like XP. */
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || e.defaultPrevented || openMenu || flipping) return;
+    if ((XP.terminal && XP.terminal.active) || document.querySelector('.xp-dim')) return;
+    if (XP.desktop && XP.desktop.isStartOpen && XP.desktop.isStartOpen()) return;
+    const w = wins.get(activeId);
+    if (w && w.opts.escClose && !w.minimized) {
+      e.preventDefault();
+      close(w.id);
+    }
+  });
+
   /* ------------------------------------------------------------------
    * Message boxes
    * ------------------------------------------------------------------ */
   function dialog({ title = 'Christian XP', icon = 'info', message = '', buttons = ['OK'], from } = {}) {
     return new Promise((resolve) => {
       let answered = false;
+      const textId = 'msg-' + ++seq;
       const content = XP.html(`<div class="msgbox">
-        <div class="msgbox-row"><span class="msgbox-ico">${XP.icon(icon, 32)}</span><div class="msgbox-text">${message}</div></div>
+        <div class="msgbox-row"><span class="msgbox-ico">${XP.icon(icon, 32)}</span><div class="msgbox-text" id="${textId}">${message}</div></div>
         <div class="msgbox-btns">${buttons.map((b, i) => `<button class="xp-btn" data-i="${i}">${XP.esc(b)}</button>`).join('')}</div>
       </div>`);
       const win = open({
@@ -479,11 +569,14 @@
         taskbar: false,
         sound: false,
         className: 'is-dialog',
+        escClose: true,
         from,
         onClose: () => {
           if (!answered) resolve(null);
         },
       });
+      win.el.setAttribute('role', 'alertdialog');
+      win.el.setAttribute('aria-describedby', textId);
       XP.sound.play(icon === 'error' || icon === 'warning' ? 'error' : 'ding');
       content.querySelectorAll('button').forEach((b) =>
         b.addEventListener('click', () => {
@@ -502,12 +595,13 @@
    * items: [{ label, icon, action, disabled, bold, checked } | '-']
    * ------------------------------------------------------------------ */
   let openMenu = null;
-  function menu(items, x, y, { anchor, onClose } = {}) {
+  function menu(items, x, y, { anchor, onClose, label } = {}) {
     closeMenu();
-    const el = XP.html('<div class="ctx-menu" role="menu"></div>');
+    const opener = document.activeElement;
+    const el = XP.html(`<div class="ctx-menu" role="menu" tabindex="-1"${label ? ` aria-label="${XP.esc(label)}"` : ''}></div>`);
     items.forEach((it) => {
-      if (it === '-') return el.appendChild(XP.html('<div class="ctx-sep"></div>'));
-      const b = XP.html(`<button class="ctx-item${it.bold ? ' is-bold' : ''}" role="menuitem" ${it.disabled ? 'disabled' : ''}>
+      if (it === '-') return el.appendChild(XP.html('<div class="ctx-sep" role="separator"></div>'));
+      const b = XP.html(`<button class="ctx-item${it.bold ? ' is-bold' : ''}" role="${it.checked != null ? 'menuitemradio' : 'menuitem'}"${it.checked != null ? ` aria-checked="${!!it.checked}"` : ''} ${it.disabled ? 'disabled' : ''}>
         <span class="ci-ico">${it.checked ? '<span class="ci-check">●</span>' : it.icon ? XP.icon(it.icon, 16) : ''}</span><span class="ci-label">${XP.esc(it.label)}</span>
       </button>`);
       b.addEventListener('click', (e) => {
@@ -531,8 +625,34 @@
       if (!el.contains(e.target)) closeMenu();
     };
     const key = (e) => {
-      if (e.key === 'Escape') closeMenu();
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        closeMenu();
+      }
     };
+    el.addEventListener('keydown', (e) => {
+      const list = [...el.querySelectorAll('.ctx-item:not(:disabled)')];
+      const i = list.indexOf(document.activeElement);
+      if (e.key === 'Escape') {
+        // Handled here as well: the document-level listener is only attached a tick after opening.
+        e.preventDefault();
+        e.stopPropagation();
+        closeMenu();
+      } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        const n = e.key === 'ArrowDown' ? (i + 1) % list.length : (i <= 0 ? list.length : i) - 1;
+        if (list[n]) list[n].focus();
+      } else if (e.key === 'Home' || e.key === 'End') {
+        e.preventDefault();
+        list[e.key === 'Home' ? 0 : list.length - 1].focus();
+      } else if (e.key === 'Tab') {
+        e.preventDefault();
+        closeMenu();
+      }
+    });
+    // From the keyboard the first item lights up; with the mouse the menu just takes focus.
+    const first = el.querySelector('.ctx-item:not(:disabled)');
+    (XP.byKeyboard() && first ? first : el).focus({ preventScroll: true });
     setTimeout(() => {
       document.addEventListener('pointerdown', away, true);
       document.addEventListener('keydown', key);
@@ -542,7 +662,9 @@
       done() {
         document.removeEventListener('pointerdown', away, true);
         document.removeEventListener('keydown', key);
+        const hadFocus = el.contains(document.activeElement);
         el.remove();
+        if (hadFocus && usable(opener)) opener.focus({ preventScroll: true });
         onClose && onClose();
       },
     };
@@ -556,7 +678,7 @@
     }
   }
 
-  XP.wm = { open, close, focus, minimize, restore, maximize, toggleMax, setTitle, toggleDesktop, fit, flip3d, get: (id) => wins.get(id), all: () => [...wins.values()] };
+  XP.wm = { open, close, focus, minimize, restore, maximize, toggleMax, setTitle, toggleDesktop, fit, flip3d, syncHash, get: (id) => wins.get(id), all: () => [...wins.values()] };
   XP.dialog = dialog;
   XP.menu = menu;
   XP.closeMenu = closeMenu;

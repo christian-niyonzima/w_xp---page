@@ -1,6 +1,15 @@
 /* ==========================================================================
    The Matrix terminal
    ========================================================================== */
+/* Self-hosted (no third-party requests, works offline). SIL Open Font License: assets/fonts/OFL.txt */
+@font-face {
+  font-family: "Share Tech Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../assets/fonts/share-tech-mono.woff2") format("woff2");
+}
+
 :root {
   --mx-rgb: 0, 255, 102;
 }

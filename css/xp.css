@@ -3409,3 +3409,330 @@ html.no-motion .off-btn svg {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ==========================================================================
+   Keyboard focus
+   ========================================================================== */
+.window:focus,
+.ctx-menu:focus {
+  outline: none;
+}
+
+/* On the blue taskbar and Start menu a black dotted ring would vanish. */
+.start-btn:focus-visible,
+.task-btn:focus-visible,
+.ql-btn:focus-visible,
+.tray-ico:focus-visible,
+.sm-f:focus-visible,
+.sm-all:focus-visible,
+.wl-power:focus-visible,
+.tb-b:focus-visible {
+  outline: 1px dotted #fff;
+  outline-offset: -3px;
+}
+
+.skip-link {
+  position: fixed;
+  left: 8px;
+  top: -60px;
+  z-index: 100;
+  padding: 8px 14px;
+  border: 1px solid #fff;
+  border-radius: 4px;
+  font: 700 13px var(--xp-font);
+  color: #fff;
+  background: #0b61ff;
+  text-decoration: none;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+}
+
+.skip-link:focus {
+  top: 8px;
+}
+
+/* ==========================================================================
+   Résumé (WordPad-style print preview) and printing
+   ========================================================================== */
+.cvw,
+.oe {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+a.tool {
+  color: inherit;
+  text-decoration: none;
+}
+
+.cvw-view {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 18px;
+  background: #808080 linear-gradient(180deg, #8a8a8a, #6f6f6f);
+}
+
+.cvw-view:focus-visible {
+  outline: 1px dotted #fff;
+  outline-offset: -4px;
+}
+
+.cv {
+  max-width: 794px; /* A4 width at 96 dpi */
+  margin: 0 auto;
+  padding: 44px 52px 36px;
+  font: 12.5px/1.5 "Segoe UI", Tahoma, Verdana, "DejaVu Sans", sans-serif;
+  color: #1c1c1c;
+  background: #fff;
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.35), 0 0 0 1px #4a4a4a;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.cv a {
+  color: #0b4fc4;
+  text-decoration: none;
+}
+
+.cv-head {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding-bottom: 14px;
+  border-bottom: 2px solid #1f6fd6;
+}
+
+.cv-photo {
+  flex: none;
+  width: 74px;
+  height: 74px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.cv h1 {
+  margin: 0;
+  font: 700 26px/1.15 var(--title-font);
+  letter-spacing: 0.01em;
+  color: #0b2f73;
+}
+
+.cv-title {
+  margin: 2px 0 6px;
+  font-size: 14px;
+  color: #1f6fd6;
+}
+
+.cv-contact {
+  margin: 0;
+  color: #444;
+  font-size: 11.5px;
+  overflow-wrap: anywhere;
+}
+
+.cv-dot {
+  color: #9aa7bd;
+}
+
+.cv-sec {
+  margin-top: 16px;
+}
+
+.cv h2 {
+  margin: 0 0 8px;
+  font: 700 11px var(--xp-font);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #1f6fd6;
+}
+
+.cv p {
+  margin: 0 0 6px;
+}
+
+.cv-entry {
+  margin-bottom: 11px;
+}
+
+.cv-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cv h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.cv h3 span {
+  font-weight: 400;
+  color: #444;
+}
+
+.cv-date {
+  flex: none;
+  font-size: 11.5px;
+  color: #555;
+  white-space: nowrap;
+}
+
+.cv-where {
+  margin: 0 0 3px !important;
+  font-size: 11.5px;
+  color: #666;
+}
+
+.cv ul {
+  margin: 2px 0 4px;
+  padding-left: 18px;
+}
+
+.cv li {
+  margin: 1px 0;
+}
+
+.cv-tech,
+.cv-links {
+  font-size: 11.5px;
+  color: #555;
+}
+
+.cv-skills {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 3px 14px;
+  margin: 0;
+}
+
+.cv-skills dt {
+  font-weight: 700;
+}
+
+.cv-skills dd {
+  margin: 0;
+}
+
+.cv-foot {
+  margin-top: 20px;
+  padding-top: 8px;
+  border-top: 1px solid #dde3ee;
+  font-size: 10.5px;
+  color: #777;
+}
+
+#print-root {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 14mm 15mm;
+  }
+
+  html,
+  body {
+    height: auto !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  body > *:not(#print-root) {
+    display: none !important;
+  }
+
+  #print-root {
+    display: block;
+  }
+
+  #print-root .cv {
+    max-width: none;
+    padding: 0;
+    box-shadow: none;
+    font-size: 10pt;
+  }
+
+  .cv a {
+    color: inherit;
+  }
+
+  .cv-entry,
+  .cv-skills {
+    break-inside: avoid;
+  }
+
+  .cv h2 {
+    break-after: avoid;
+  }
+}
+
+/* ==========================================================================
+   New Message (Outlook Express-style)
+   ========================================================================== */
+.oe-fields {
+  flex: none;
+  display: grid;
+  gap: 4px;
+  padding: 6px 8px;
+  background: var(--face);
+  border-bottom: 1px solid #d8d2bd;
+}
+
+.oe-row {
+  display: grid;
+  grid-template-columns: 58px 1fr;
+  align-items: center;
+}
+
+.oe-row input[readonly] {
+  color: #333;
+  background: #f7f6f0;
+}
+
+.oe-body {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 8px 10px;
+  border: 0;
+  border-bottom: 1px solid #d8d2bd;
+  resize: none;
+  font: 13px/1.5 Arial, "Helvetica Neue", sans-serif;
+  color: #000;
+  background: #fff;
+  outline: none;
+}
+
+@media (max-width: 720px) {
+  .cvw-view {
+    padding: 8px;
+  }
+
+  .cv {
+    padding: 22px 18px 20px;
+    font-size: 13px;
+  }
+
+  .cv-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .cv-row {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .cvw .tool span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+}

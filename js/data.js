@@ -18,11 +18,14 @@ window.PROFILE = {
   avatar: '',
   // Your CV, e.g. 'assets/resume.pdf'. Leave empty to hide every resume link.
   resume: '',
-  email: 'you@example.com',
+  email: 'you@example.com', // ← your real address (placeholders stay hidden from visitors)
 
-  // Desktop wallpaper. Upload the original XP "Bliss" photo into the assets folder
-  // named bliss.jpg (or .png / .webp) and it is used automatically; until then a
-  // hand-drawn look-alike is shown. Or point this at any other picture.
+  // Public address of this site. Printed on the résumé and used for shared links.
+  siteUrl: 'https://christian-niyonzima.github.io/w_xp---page/',
+
+  // Desktop wallpaper. Empty = assets/bliss.jpg (the classic "Bliss" photo). Point this
+  // at any other picture, e.g. 'assets/my-wallpaper.jpg'. If no picture can be found at
+  // all, a hand-drawn look-alike (assets/wallpaper.jpg) is shown instead.
   wallpaperImage: '',
 
   // Smooth sweep transitions between screens, folders, windows and menus.
@@ -31,6 +34,9 @@ window.PROFILE = {
   transitions: true,
 
   about: {
+    // One or two sentences for the top of the printable résumé.
+    summary:
+      'Software developer who enjoys turning ideas into polished products people can click, tap and play with. I care about clean code, interfaces that feel good to use, and learning something new every week.',
     bio: [
       "Hi, I'm Christian — a developer who likes turning ideas into things people can click, tap and play with.",
       'I care about clean code, interfaces that feel good to use, and learning something new every week. This desktop is a small example: a Windows XP machine with a Matrix terminal hidden inside.',
@@ -57,8 +63,8 @@ window.PROFILE = {
     ],
   },
 
-  // Shown in the Web Explorer, the Start menu, the terminal and the About Me folder.
-  // icon: linkedin | github | mail | globe | pdf
+  // Shown in the Web Explorer, the Start menu, the terminal, the About Me folder and the
+  // printable résumé. icon: linkedin | github | mail | globe | pdf
   links: [
     {
       id: 'linkedin',
@@ -87,6 +93,7 @@ window.PROFILE = {
       url: 'https://github.com/christian-niyonzima/w_xp---page',
       desc: 'The source code of this XP desktop.',
       icon: 'globe',
+      hideOnResume: true, // keep it off the printable résumé
     },
   ],
 
@@ -106,17 +113,17 @@ window.PROFILE = {
       links: [{ label: 'View source', url: 'https://github.com/christian-niyonzima/w_xp---page' }],
     },
     {
-      name: 'Project Name',
-      year: '2025',
-      role: 'Your role',
-      summary: 'One sentence about a project you are proud of: what it does and who it is for.',
+      name: 'Diet & Training Planner',
+      year: '2026',
+      role: 'Personal project',
+      summary: 'Answer a few questions and get a meal-prep plan with a shopping list, plus a weekly workout schedule.',
       details: [
-        'What problem did it solve?',
-        'What was the hardest technical part, and how did you crack it?',
-        'What would you do differently next time?',
+        'Turns a short questionnaire into a personal meal-prep plan, complete with a shopping list.',
+        'Builds a weekly workout schedule from a library of 1,300+ exercises.',
+        'Written in Python, with a Streamlit interface.',
       ],
-      tech: ['Tech', 'You', 'Used'],
-      links: [],
+      tech: ['Python', 'Streamlit'],
+      links: [{ label: 'View source', url: 'https://github.com/christian-niyonzima/Diet-and-training-planner' }],
     },
     {
       name: 'Another Side Project',
