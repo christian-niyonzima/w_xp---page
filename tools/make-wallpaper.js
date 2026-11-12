@@ -19,7 +19,7 @@ const OUT = path.join(__dirname, '..', 'assets', 'wallpaper.jpg');
   const page = await browser.newPage({ viewport: { width: 2560, height: 1600 } });
   await page.setContent(`<body style="margin:0">${fs.readFileSync(SRC, 'utf8')}</body>`);
   await page.waitForTimeout(300);
-  await page.screenshot({ path: OUT, type: 'jpeg', quality: 88 });
+  await page.screenshot({ path: OUT, type: 'jpeg', quality: 80 });
   await browser.close();
   console.log('Wrote', path.relative(process.cwd(), OUT), `(${Math.round(fs.statSync(OUT).size / 1024)} KB)`);
 })();

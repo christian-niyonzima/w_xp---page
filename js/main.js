@@ -42,7 +42,7 @@
    *   fade:  a plain cross-fade
    * ================================================================== */
   const Screens = {
-    cur: null,
+    cur: 'boot', // index.html already shows the boot screen before any script runs
     el: (id) => document.getElementById('screen-' + id),
     instant(id) {
       if (this.cur) this.el(this.cur).classList.remove('is-active');
@@ -111,6 +111,13 @@
       case 'browser':
         XP.busy();
         return XP.apps.browser(from);
+      case 'resume':
+        XP.busy();
+        return XP.office.resume(from);
+      case 'compose':
+        return XP.office.compose(from);
+      case 'minesweeper':
+        return XP.games.minesweeper(from);
       case 'terminal':
         return XP.terminal.enter();
       case 'run':
@@ -142,11 +149,14 @@
     experience: 'experience', work: 'experience', studies: 'studies', education: 'studies',
     recycle: 'recycle', 'recycle bin': 'recycle', help: 'help', control: 'display', 'desk.cpl': 'display', display: 'display',
     flip: 'flip', flip3d: 'flip', search: 'search',
+    resume: 'resume', cv: 'resume', wordpad: 'resume', write: 'resume', print: 'resume',
+    msimn: 'compose', outlook: 'compose', mail: 'compose', email: 'compose', message: 'compose',
+    winmine: 'minesweeper', minesweeper: 'minesweeper', mines: 'minesweeper', games: 'minesweeper',
   };
   XP.runCommand = function (raw) {
     const s = raw.trim().toLowerCase().replace(/\.exe$/, '');
     if (s === 'winver') return XP.apps.about(), true;
-    if (RUN[s]) return XP.open(RUN[s]), true;
+    if (XP.own(RUN, s)) return XP.open(RUN[s]), true;
     const link = XP.links().find((l) => l.id === s || l.label.toLowerCase() === s);
     if (link) return XP.openUrl(link.url), true;
     if (/^https?:\/\//.test(s) || /^www\./.test(s) || /^[^\s]+\.[a-z]{2,}$/.test(s)) return XP.apps.browser(null, raw.trim()), true;
@@ -156,7 +166,8 @@
   /* ==================================================================
    * Boot + Welcome
    * ================================================================== */
-  function boot() {
+  /** elapsed: how long the boot screen has already been visible (on first load it shows before scripts run). */
+  function boot(elapsed = 0) {
     const scr = Screens.el('boot');
     let done = false;
     const finish = () => {
@@ -166,9 +177,10 @@
       document.removeEventListener('keydown', finish);
       scr.removeEventListener('click', finish);
       session.set('xp:booted', '1');
-      Screens.show('welcome', 'fade');
+      // A deep link (e.g. the skip link) may already have moved on to the desktop.
+      if (Screens.cur === 'boot') Screens.show('welcome', 'fade');
     };
-    const t = setTimeout(finish, 3600);
+    const t = setTimeout(finish, Math.max(1200, 3600 - elapsed));
     document.addEventListener('keydown', finish);
     // "click", not "pointerdown": otherwise the same tap lands on the welcome screen and logs in.
     scr.addEventListener('click', finish);
@@ -213,31 +225,45 @@
   /* ==================================================================
    * Wallpapers
    * ================================================================== */
-  // The real Bliss photo, if the owner uploaded one (any common extension works).
-  // Until it is found, the hand-drawn hills are shown.
-  let photo = null;
-  let photoChecked = false;
+  // The desktop photo (Bliss, or PROFILE.wallpaperImage; any common extension works).
+  // It starts loading during boot so the desktop appears with it already in place. Only
+  // if no photo can be found at all is the hand-drawn look-alike downloaded instead.
+  let photo = null; // the URL that loaded
+  let photoState = 'unknown'; // unknown → loading → found | missing
+  const photoWaiters = [];
   const PHOTOS = () =>
     [P.wallpaperImage, 'assets/bliss.jpg', 'assets/bliss.jpeg', 'assets/bliss.png', 'assets/bliss.webp'].filter((v, i, all) => v && all.indexOf(v) === i);
   function findPhoto(then) {
-    photoChecked = true;
+    if (then) photoWaiters.push(then);
+    if (photoState === 'found' || photoState === 'missing') return photoWaiters.splice(0).forEach((f) => f());
+    if (photoState === 'loading') return;
+    photoState = 'loading';
     const list = PHOTOS();
     const next = () => {
       const src = list.shift();
-      if (!src) return;
+      if (!src) {
+        photoState = 'missing';
+        return photoWaiters.splice(0).forEach((f) => f());
+      }
       const img = new Image();
-      img.onload = () => then(src);
+      img.onload = () => {
+        photo = src;
+        photoState = 'found';
+        photoWaiters.splice(0).forEach((f) => f());
+      };
       img.onerror = next;
       img.src = src;
     };
     next();
   }
-  const hills = () =>
-    [photo, 'assets/wallpaper.jpg']
-      .filter(Boolean)
-      .map((src) => `url("${src}") center / cover no-repeat`)
-      .concat('#3a6ea5')
-      .join(', ');
+  // Sky over grass: shown for the split second before the photo is decoded.
+  const PLACEHOLDER = 'linear-gradient(180deg, #2f6fe0 0%, #79aef5 52%, #5fae2c 53%, #3f8a1c 100%)';
+  const cover = (src) => `url("${src}") center / cover no-repeat`;
+  const hills = () => {
+    if (photoState === 'found') return `${cover(photo)}, #3a6ea5`;
+    if (photoState === 'missing') return `${cover('assets/wallpaper.jpg')}, #3a6ea5`;
+    return PLACEHOLDER;
+  };
 
   const WALLPAPERS = {
     bliss: { label: 'Bliss', css: hills },
@@ -251,15 +277,11 @@
   };
   let wallRain = null;
   function setWallpaper(name) {
-    if (!WALLPAPERS[name]) name = 'bliss';
+    if (!XP.own(WALLPAPERS, name)) name = 'bliss';
     store.set('xp:wallpaper', name);
     const w = WALLPAPERS[name];
     $('#wallpaper').style.background = w.css();
-    if (name === 'bliss' && !photoChecked)
-      findPhoto((src) => {
-        photo = src;
-        if (wallpaper() === 'bliss') $('#wallpaper').style.background = hills();
-      });
+    if (name === 'bliss') findPhoto(() => wallpaper() === 'bliss' && ($('#wallpaper').style.background = hills()));
     const canvas = $('#wallpaper-rain');
     canvas.hidden = !w.rain;
     if (w.rain) {
@@ -267,7 +289,7 @@
       wallRain.start();
     } else if (wallRain) wallRain.stop();
   }
-  const wallpaper = () => (WALLPAPERS[store.get('xp:wallpaper', 'bliss')] ? store.get('xp:wallpaper', 'bliss') : 'bliss');
+  const wallpaper = () => (XP.own(WALLPAPERS, store.get('xp:wallpaper', 'bliss')) ? store.get('xp:wallpaper', 'bliss') : 'bliss');
 
   /* ==================================================================
    * Desktop icons
@@ -277,10 +299,10 @@
     { id: 'projects', label: 'Passion Projects', icon: 'folder-projects', open: 'projects', type: 'File Folder' },
     { id: 'experience', label: 'Experience', icon: 'folder-experience', open: 'experience', type: 'File Folder' },
     { id: 'studies', label: 'Studies', icon: 'folder-studies', open: 'studies', type: 'File Folder' },
+    { id: 'resume', label: 'Résumé', icon: 'resume', open: 'resume', type: P.resume ? 'Document (printable, with PDF download)' : 'Document (print or save as PDF)' },
     { id: 'terminal', label: 'Terminal', icon: 'terminal', open: 'terminal', type: 'Application (enters the Matrix)' },
     { id: 'browser', label: 'Web Explorer', icon: 'browser', open: 'browser', type: 'Application (links)' },
   ];
-  if (P.resume) ICONS.push({ id: 'resume', label: 'Resume.pdf', icon: 'pdf', open: 'resume', type: 'PDF Document' });
   ICONS.push({ id: 'recycle', label: 'Recycle Bin', icon: 'recycle', open: 'recycle', type: 'Recycle Bin', corner: true });
 
   let iconsEl;
@@ -359,7 +381,7 @@
     iconsEl = $('#desk-icons');
     iconsEl.innerHTML = '';
     ICONS.forEach((ic) => {
-      ic.el = XP.html(`<button class="d-icon" data-id="${ic.id}" role="listitem" aria-label="${esc(ic.label)}">
+      ic.el = XP.html(`<button class="d-icon" data-id="${ic.id}" aria-describedby="desk-hint">
         <span class="d-icon-img">${XP.icon(ic.icon, 48)}</span><span class="d-icon-label">${esc(ic.label)}</span></button>`);
       iconsEl.appendChild(ic.el);
     });
@@ -385,8 +407,11 @@
     iconsEl.addEventListener('keydown', (e) => {
       const el = e.target.closest('.d-icon');
       if (!el) return;
-      if (e.key === 'Enter') openIcon(ICONS.find((i) => i.el === el));
-      if (e.key === 'Delete') deleteJoke(ICONS.find((i) => i.el === el));
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        openIcon(ICONS.find((i) => i.el === el));
+      } else if (e.key === 'Delete') deleteJoke(ICONS.find((i) => i.el === el));
+      else XP.arrowNav(e, ICONS.map((i) => i.el), el);
     });
     iconsEl.addEventListener('focusin', (e) => {
       const el = e.target.closest('.d-icon');
@@ -511,6 +536,11 @@
     const onBar = e.target.closest('.taskbar');
     if (!icon && !onDesk && !onBar) return;
     e.preventDefault();
+    // Opened from the keyboard (menu key / Shift+F10): place the menu by the focused item.
+    if (!e.clientX && !e.clientY) {
+      const r = (icon || e.target).getBoundingClientRect();
+      e = { target: e.target, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 };
+    }
     if (icon) {
       const ic = ICONS.find((i) => i.el === icon);
       selectOnly(icon);
@@ -575,6 +605,7 @@
           ${item('projects', 'folder-projects', 'Passion Projects')}
           ${item('experience', 'folder-experience', 'Experience')}
           ${item('studies', 'folder-studies', 'Studies')}
+          ${item('resume', 'resume', 'Résumé')}
           <div class="sm-grow"></div>
           <hr>
           <button class="sm-all" data-act="all"><span>All Programs</span><span class="sm-arrow"></span></button>
@@ -602,10 +633,20 @@
       allPrograms(all);
     });
     all.addEventListener('pointerenter', (e) => e.pointerType === 'mouse' && allPrograms(all));
+    const sm = $('#start-menu');
+    sm.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        closeStart();
+        return $('#start-btn').focus();
+      }
+      if (e.key === 'ArrowRight' && e.target === all) return allPrograms(all, true);
+      XP.arrowNav(e, [...sm.querySelectorAll('button')], e.target.closest('button') || sm.querySelector('button'));
+    });
   }
 
-  function allPrograms(anchor) {
-    if ($('#sm-flyout')) return;
+  function allPrograms(anchor, focusFirst) {
+    if ($('#sm-flyout')) return focusFirst && $('#sm-flyout .ctx-item').focus();
     const fly = XP.html(`<div class="ctx-menu sm-flyout" id="sm-flyout">${[
       ['browser', 'browser', 'Web Explorer'],
       ['terminal', 'terminal', 'Terminal (Matrix)'],
@@ -613,6 +654,9 @@
       ['projects', 'folder-projects', 'Passion Projects'],
       ['experience', 'folder-experience', 'Experience'],
       ['studies', 'folder-studies', 'Studies'],
+      ['resume', 'resume', 'Résumé (WordPad)'],
+      ['compose', 'compose', 'New Message'],
+      ['minesweeper', 'mine', 'Minesweeper'],
       ['recycle', 'recycle', 'Recycle Bin'],
       ['flip', 'flip', 'Flip 3D'],
       ['display', 'display', 'Display Properties'],
@@ -625,6 +669,21 @@
     fly.style.left = Math.min(r.right - 4, window.innerWidth - fly.offsetWidth - 4) + 'px';
     fly.style.top = Math.max(4, r.bottom - fly.offsetHeight) + 'px';
     XP.animate(fly, [{ opacity: 0, transform: 'translateX(-8px)' }, { opacity: 1, transform: 'translateX(0px)' }], { duration: 160 });
+    fly.addEventListener('keydown', (e) => {
+      const items = [...fly.querySelectorAll('.ctx-item')];
+      if (e.key === 'ArrowLeft' || e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        fly.remove();
+        return anchor.focus();
+      }
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        const i = items.indexOf(document.activeElement);
+        items[(i + (e.key === 'ArrowDown' ? 1 : items.length - 1)) % items.length].focus();
+      }
+    });
+    if (focusFirst) fly.querySelector('.ctx-item').focus();
   }
 
   function openStart() {
@@ -633,6 +692,7 @@
     startOpen = true;
     $('#start-btn').classList.add('is-open');
     $('#start-btn').setAttribute('aria-expanded', 'true');
+    if (XP.byKeyboard()) sm.querySelector('.sm-item').focus({ preventScroll: true });
     XP.animate(
       sm,
       [
@@ -645,9 +705,11 @@
   function closeStart() {
     if (!startOpen) return;
     startOpen = false;
-    $('#start-menu').hidden = true;
     const fly = $('#sm-flyout');
+    const hadFocus = $('#start-menu').contains(document.activeElement) || (fly && fly.contains(document.activeElement));
+    $('#start-menu').hidden = true;
     if (fly) fly.remove();
+    if (hadFocus) $('#start-btn').focus({ preventScroll: true });
     $('#start-btn').classList.remove('is-open');
     $('#start-btn').setAttribute('aria-expanded', 'false');
   }
@@ -678,11 +740,13 @@
     const paint = () => {
       snd.innerHTML = XP.icon(XP.sound.muted ? 'mute' : 'speaker', 16);
       snd.title = XP.sound.muted ? 'Sound is off' : 'Sound is on';
+      snd.setAttribute('aria-pressed', String(!XP.sound.muted));
+      snd.setAttribute('aria-label', 'Sound');
     };
     paint();
+    document.addEventListener('xp:sound', paint);
     snd.addEventListener('click', () => {
       XP.sound.toggle();
-      paint();
       XP.sound.play('ding');
     });
     $('#tray-matrix').innerHTML = XP.icon('pill', 16);
@@ -799,16 +863,47 @@
     enterIcons();
     if (!welcomed) {
       welcomed = true;
+      ownerChecklist();
       setTimeout(
         () =>
           balloon({
             title: `Welcome to ${P.firstName} XP`,
-            html: `${touch ? 'Tap' : 'Double-click'} a folder to look around, or open the <button class="a" data-open="terminal">Terminal</button> and type <b>help</b> to enter the Matrix.`,
+            html: `${touch ? 'Tap' : 'Double-click'} a folder to look around, or open the <button class="a" data-open="terminal">Terminal</button> and type <b>help</b> to enter the Matrix.<br><br>In a hurry? The <button class="a" data-open="resume">Résumé</button> has it all on one page.`,
             timeout: XP.mobile() ? 9000 : 16000,
           }),
         1700
       );
     }
+  }
+
+  /* Owner checklist: when the site is opened locally (never for visitors), list what in
+   * js/data.js still needs filling in. Shown once per session. */
+  const isLocal = location.protocol === 'file:' || /^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])$/.test(location.hostname);
+  function ownerChecklist() {
+    if (!isLocal || session.get('xp:checklist')) return;
+    session.set('xp:checklist', '1');
+    const s = document.createElement('script');
+    s.src = 'js/profile-check.js';
+    s.onload = () => {
+      const issues = XP.profileIssues(P).filter((i) => i.level !== 'tip');
+      if (!issues.length) return;
+      const errors = issues.filter((i) => i.level === 'error').length;
+      console.groupCollapsed(`%c${P.firstName} XP · ${issues.length} thing(s) to fix or fill in, in js/data.js`, 'color:#0b61ff;font-weight:bold');
+      console.table(issues);
+      console.groupEnd();
+      setTimeout(
+        () =>
+          Screens.cur === 'desktop' &&
+          balloon({
+            title: 'Owner checklist (only shown locally)',
+            icon: errors ? 'error' : 'warning',
+            html: `<b>${issues.length}</b> item${issues.length === 1 ? '' : 's'} in <code>js/data.js</code> still need${issues.length === 1 ? 's' : ''} your attention${errors ? `, including <b>${errors} error${errors === 1 ? '' : 's'}</b>` : ''}. Run <code>npm run check</code> or open the browser console for the list.`,
+            timeout: 14000,
+          }),
+        errors ? 2500 : 20000
+      );
+    };
+    document.head.appendChild(s);
   }
 
   async function toDesktop() {
@@ -826,6 +921,8 @@
     setSaver,
     startSaver,
     closeStart,
+    isStartOpen: () => startOpen,
+    onPhoto: (fn) => findPhoto(fn),
     balloon,
     enterUnderMatrix() {
       initDesktop();
@@ -929,13 +1026,46 @@
     projects: () => XP.open('projects'),
     experience: () => XP.open('experience'),
     studies: () => XP.open('studies'),
+    documents: () => XP.open('root'),
+    search: () => XP.open('search'),
     links: () => XP.open('browser'),
     contact: () => XP.apps.folder({ kind: 'item', key: 'about', id: 'contact' }),
+    resume: () => XP.open('resume'),
+    cv: () => XP.open('resume'),
+    message: () => XP.open('compose'),
+    help: () => XP.open('help'),
+    recycle: () => XP.open('recycle'),
+    minesweeper: () => XP.open('minesweeper'),
   };
 
+  /** Mirror the current view in the address bar (#projects/xp-career-desktop) without adding history. */
+  XP.setHash = (h) => {
+    const want = h ? '#' + h : '';
+    if (location.hash === want || (!want && !location.hash)) return;
+    try {
+      history.replaceState(history.state, '', location.pathname + location.search + want);
+    } catch (e) {}
+  };
+
+  // #about, #projects, … open a folder; #projects/<item> opens one item inside it.
   function route() {
-    const r = ROUTES[location.hash.slice(1).toLowerCase()];
+    let raw = location.hash.slice(1);
+    try {
+      raw = decodeURIComponent(raw);
+    } catch (e) {} // a stray "%" in a shared link must not stop the page from starting
+    const [name, id] = raw.toLowerCase().split('/');
+    let r = XP.own(ROUTES, name) ? ROUTES[name] : null;
+    if (r && id && XP.own(XP.apps.FOLDERS, name)) r = () => XP.apps.folder({ kind: 'item', key: name, id });
     if (!r) return false;
+    if (XP.terminal.active && name !== 'terminal' && name !== 'matrix') {
+      // Leave the terminal first; if it is mid-animation, wait for that to finish.
+      const go = r;
+      r = function leave() {
+        if (!XP.terminal.active) return go();
+        if (XP.terminal.moving) return setTimeout(leave, 200);
+        XP.terminal.exit(go);
+      };
+    }
     if (Screens.cur !== 'desktop') {
       initDesktop();
       Screens.instant('desktop');
@@ -945,12 +1075,46 @@
     return true;
   }
 
+  /* For search engines (which run scripts): who this page is about, as schema.org data. */
+  function structuredData() {
+    const same = XP.links()
+      .map((l) => l.url)
+      .filter((u) => /^https?:/i.test(u));
+    const person = { '@context': 'https://schema.org', '@type': 'Person', name: P.name, jobTitle: P.title, url: XP.siteUrl(), sameAs: same };
+    if (P.tagline) person.description = P.tagline;
+    if (XP.real(P.location)) person.address = { '@type': 'PostalAddress', addressLocality: P.location };
+    if (XP.email()) person.email = 'mailto:' + XP.email();
+    if (P.avatar) person.image = new URL(P.avatar, XP.siteUrl()).href;
+    const tag = document.createElement('script');
+    tag.type = 'application/ld+json';
+    tag.textContent = JSON.stringify(person);
+    document.head.appendChild(tag);
+  }
+
+  /* Installable + works offline, when served over the web (not from a file or localhost). */
+  function webApp() {
+    if (!/^https?:$/.test(location.protocol)) return;
+    const m = document.createElement('link');
+    m.rel = 'manifest';
+    m.href = 'manifest.webmanifest';
+    document.head.appendChild(m);
+    if ('serviceWorker' in navigator && location.protocol === 'https:' && !isLocal)
+      window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+  }
+
   function init() {
+    structuredData();
+    webApp();
     document.querySelectorAll('[data-bind]').forEach((el) => (el.textContent = P[el.dataset.bind] || ''));
+    const copy = $('.boot-copy');
+    if (copy) copy.textContent = `Copyright © 2002–${new Date().getFullYear()}`;
     document.querySelectorAll('[data-icon]').forEach((el) => (el.innerHTML = XP.icon(el.dataset.icon, 64)));
     document.title = `${P.firstName} XP · ${P.name}, ${P.title}`;
     store.set('xp:visits', (+store.get('xp:visits', 0) || 0) + 1);
     buildWelcome();
+    // Warm the caches while the boot screen plays: the desktop photo and the terminal font.
+    if (wallpaper() === 'bliss') findPhoto();
+    if (document.fonts && document.fonts.load) document.fonts.load('16px "Share Tech Mono"').catch(() => {});
 
     document.addEventListener('click', (e) => {
       const t = e.target.closest('[data-open]');
@@ -973,12 +1137,19 @@
     });
 
     window.addEventListener('hashchange', route);
+    const skip = $('.skip-link');
+    if (skip)
+      skip.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (location.hash === '#resume') route();
+        else location.hash = 'resume';
+      });
 
     if (route()) return;
     if (session.get('xp:booted') || XP.reduced) Screens.instant('welcome');
     else {
       Screens.instant('boot');
-      boot();
+      boot(performance.now());
     }
   }
 

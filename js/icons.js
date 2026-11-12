@@ -44,6 +44,7 @@
       pdf: ['#d93a2b', 'PDF'],
       html: ['#2a6fd6', 'HTM'],
       exe: ['#6b4fbb', 'EXE'],
+      cv: ['#1f6fd6', 'CV'],
       txt: null,
       unknown: ['#7a7a7a', '???'],
     }[kind || 'txt'];
@@ -65,6 +66,27 @@
     html: () => doc('html'),
     exe: () => doc('exe'),
     pdf: () => doc('pdf'),
+    resume: () => doc('cv'),
+    mine: () =>
+      `<rect x="3" y="3" width="42" height="42" rx="3" fill="#c0c0c0" stroke="#7b7b7b"/><path d="M5 43V5h38" fill="none" stroke="#fff" stroke-width="2"/>
+       <path d="M24 9v30M9 24h30M13.4 13.4l21.2 21.2M34.6 13.4L13.4 34.6" stroke="#000" stroke-width="3"/><circle cx="24" cy="24" r="10"/><circle cx="20.5" cy="20.5" r="3" fill="#fff"/>`,
+    printer: () => {
+      const g = uid();
+      return `<defs>${lin(g, [[0, '#f4f4f0'], [1, '#c9c6ba']])}</defs>
+        <path d="M13 6h18l5 5v10H13z" fill="#fff" stroke="#7a8fa6"/><path d="M17 12h12M17 16h14" stroke="#9fb3c8" stroke-width="1.4"/>
+        <rect x="4" y="19" width="40" height="17" rx="3" fill="url(#${g})" stroke="#6f6c62"/>
+        <rect x="11" y="31" width="26" height="12" fill="#fff" stroke="#7a8fa6"/><path d="M15 35h18M15 38.5h12" stroke="#9fb3c8" stroke-width="1.2"/>
+        <circle cx="38" cy="24.5" r="1.6" fill="#3fae2a"/>`;
+    },
+    link: () =>
+      `<path d="M20.5 27.5a7 7 0 0 0 10 0l7-7a7 7 0 0 0-10-10l-2.6 2.6" fill="none" stroke="#2a6fd6" stroke-width="4" stroke-linecap="round"/>
+       <path d="M27.5 20.5a7 7 0 0 0-10 0l-7 7a7 7 0 0 0 10 10l2.6-2.6" fill="none" stroke="#5aa0f0" stroke-width="4" stroke-linecap="round"/>`,
+    compose: () => {
+      const g = uid();
+      return `<defs>${lin(g, [[0, '#fffbe8'], [1, '#f1e3b0']])}</defs>
+        <path d="M5 13h30v24H5z" fill="url(#${g})" stroke="#a08850"/><path d="M5 13l15 12 15-12" fill="none" stroke="#a08850"/>
+        <path d="M27 31l14-14 4 4-14 14-5 1z" fill="#ffd23f" stroke="#8a6a12" stroke-linejoin="round"/><path d="M38 20l4 4" stroke="#8a6a12"/>`;
+    },
     unknown: () => doc('unknown'),
 
     terminal: () => {

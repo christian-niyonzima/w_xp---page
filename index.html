@@ -3,35 +3,49 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>Christian XP</title>
-    <meta name="description" content="Career landing page of Christian Niyonzima: a Windows XP desktop with a Matrix terminal hidden inside." />
+    <title>Christian Niyonzima · Software Developer · Christian XP</title>
+    <meta name="description" content="Career page of Christian Niyonzima, software developer: a Windows XP desktop with a Matrix terminal hidden inside. Projects, experience, studies and a printable résumé." />
+    <meta name="author" content="Christian Niyonzima" />
     <meta name="theme-color" content="#245ddb" />
-    <meta property="og:title" content="Christian XP: career desktop" />
-    <meta property="og:description" content="A Windows XP desktop with a Matrix terminal hidden inside. Double-click around, or type help." />
+    <meta name="color-scheme" content="light" />
+    <!-- Link previews (LinkedIn, Slack, X, WhatsApp…). Using another address? Update the URLs below. -->
+    <link rel="canonical" href="https://christian-niyonzima.github.io/w_xp---page/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Christian XP" />
+    <meta property="og:url" content="https://christian-niyonzima.github.io/w_xp---page/" />
+    <meta property="og:title" content="Christian Niyonzima · Software Developer" />
+    <meta property="og:description" content="My career page is a Windows XP desktop with a Matrix terminal hidden inside. Double-click around, or type help." />
+    <meta property="og:image" content="https://christian-niyonzima.github.io/w_xp---page/assets/social-card.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="A Windows XP desktop showing Christian Niyonzima's profile in an Explorer window." />
+    <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+    <link rel="icon" href="assets/icons/icon-192.png" type="image/png" sizes="192x192" />
+    <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png" />
     <link rel="stylesheet" href="css/xp.css" />
-    <link rel="stylesheet" href="css/matrix.css" />
+    <!-- The terminal's styles are not needed for the first paint: load them without blocking it. -->
+    <link rel="stylesheet" href="css/matrix.css" media="print" onload="this.media='all'" />
   </head>
   <body>
+    <nav class="skip" aria-label="Shortcuts"><button class="skip-link" type="button">Skip the desktop: show the plain résumé</button></nav>
     <div id="stage">
       <!-- ============ BOOT ============ -->
-      <section id="screen-boot" class="screen" aria-label="Starting up">
+      <!-- Shown straight from the HTML, before any script has loaded (the text is refreshed from js/data.js). -->
+      <section id="screen-boot" class="screen is-active" aria-label="Starting up">
         <div class="boot-center">
           <div class="boot-logo">
-            <span class="xp-logo boot-flag" data-icon="xpflag" aria-hidden="true"></span>
+            <span class="xp-logo boot-flag" data-icon="xpflag" aria-hidden="true"><img src="assets/favicon.svg" width="64" height="64" alt="" /></span>
             <div class="boot-word">
-              <span class="boot-small" data-bind="name"></span>
-              <span class="boot-name"><span data-bind="firstName"></span><sup>xp</sup></span>
+              <span class="boot-small" data-bind="name">Christian Niyonzima</span>
+              <span class="boot-name"><span data-bind="firstName">Christian</span><sup>xp</sup></span>
               <span class="boot-edition">Career Edition</span>
             </div>
           </div>
           <div class="boot-bar" role="progressbar" aria-label="Loading"><div class="boot-blocks"><i></i><i></i><i></i></div></div>
         </div>
         <p class="boot-skip">click or press any key to skip</p>
-        <footer class="boot-foot"><span>Copyright © 2002–2026</span><span class="boot-brand" data-bind="name"></span></footer>
+        <footer class="boot-foot"><span class="boot-copy">Copyright © 2002–2026</span><span class="boot-brand" data-bind="name">Christian Niyonzima</span></footer>
       </section>
 
       <!-- ============ WELCOME / LOG ON ============ -->
@@ -58,7 +72,8 @@
       <section id="screen-desktop" class="screen" aria-label="Desktop">
         <div class="desk-wallpaper" id="wallpaper"></div>
         <canvas class="desk-rain" id="wallpaper-rain" hidden></canvas>
-        <div class="desk-icons" id="desk-icons" role="list" aria-label="Desktop icons"></div>
+        <div class="desk-icons" id="desk-icons" role="group" aria-label="Desktop"></div>
+        <p class="sr-only" id="desk-hint">Press Enter to open. Arrow keys move between icons; the menu key shows more options.</p>
         <div class="desk-select" id="desk-select" hidden></div>
         <div class="desk-windows" id="desk-windows"></div>
         <nav class="start-menu" id="start-menu" aria-label="Start menu" hidden></nav>
@@ -115,17 +130,20 @@
     <noscript>
       <div class="noscript">
         <h1>Christian Niyonzima</h1>
-        <p>This career page is an interactive Windows XP desktop and needs JavaScript. Turn it on, or find me on <a href="https://github.com/christian-niyonzima">GitHub</a>.</p>
+        <p>Software developer. This career page is an interactive Windows XP desktop (with a Matrix terminal hidden inside) and needs JavaScript.</p>
+        <p>Turn JavaScript on and reload, or find me on <a href="https://github.com/christian-niyonzima">GitHub</a>.</p>
       </div>
     </noscript>
 
-    <script src="js/data.js"></script>
-    <script src="js/icons.js"></script>
-    <script src="js/sound.js"></script>
-    <script src="js/rain.js"></script>
-    <script src="js/wm.js"></script>
-    <script src="js/apps.js"></script>
-    <script src="js/terminal.js"></script>
-    <script src="js/main.js"></script>
+    <script src="js/data.js" defer></script>
+    <script src="js/icons.js" defer></script>
+    <script src="js/sound.js" defer></script>
+    <script src="js/rain.js" defer></script>
+    <script src="js/wm.js" defer></script>
+    <script src="js/apps.js" defer></script>
+    <script src="js/office.js" defer></script>
+    <script src="js/games.js" defer></script>
+    <script src="js/terminal.js" defer></script>
+    <script src="js/main.js" defer></script>
   </body>
 </html>

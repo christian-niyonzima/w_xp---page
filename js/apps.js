@@ -13,9 +13,23 @@
   const isMail = (url) => /^mailto:/i.test(url);
   const target = (url) => (isMail(url) ? '' : ' target="_blank" rel="noopener"');
 
+  /* Template values in data.js that were never filled in are kept away from visitors (no dead
+   * LinkedIn link, no mail to example.com). The owner sees them in the setup checklist instead. */
+  const TEMPLATE = /your-profile|@example\.com|^your city\b/i;
+  XP.isPlaceholder = (v) => TEMPLATE.test(String(v == null ? '' : v));
+  XP.real = (v) => (v && !XP.isPlaceholder(v) ? v : '');
+  XP.email = () => XP.real(P.email);
+
+  /** Where this site lives: the public address it is served from, else PROFILE.siteUrl. */
+  XP.siteUrl = () => {
+    const here = location.href.split('#')[0];
+    const local = location.protocol === 'file:' || /^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])$/.test(location.hostname);
+    return local && P.siteUrl ? P.siteUrl : here;
+  };
+
   /** Every outbound link: PROFILE.links plus the resume when one is set. */
   XP.links = () => {
-    const l = (P.links || []).slice();
+    const l = (P.links || []).filter((x) => x && x.url && !XP.isPlaceholder(x.url));
     if (P.resume) l.push({ id: 'resume', label: 'Resume', url: P.resume, desc: 'Download my CV (PDF).', icon: 'pdf' });
     return l;
   };
@@ -41,7 +55,7 @@
         <div>
           <h1>${esc(P.name)}</h1>
           <p class="doc-sub">${esc(P.title)}</p>
-          <p class="profile-meta"><span>${icon('globe', 14)} ${esc(P.location)}</span>${P.status ? `<span class="status-dot">${esc(P.status)}</span>` : ''}</p>
+          <p class="profile-meta">${XP.real(P.location) ? `<span>${icon('globe', 14)} ${esc(P.location)}</span>` : ''}${P.status ? `<span class="status-dot">${esc(P.status)}</span>` : ''}</p>
         </div>
       </div>
       <p class="doc-lead">${esc(P.tagline)}</p>
@@ -72,15 +86,7 @@
       <div class="contact-list">${XP.links()
         .map((l) => `<a class="contact-row" href="${esc(l.url)}"${target(l.url)}>${icon(l.icon || 'globe', 32)}<span><b>${esc(l.label)}</b><small>${esc(l.url.replace(/^mailto:|^https?:\/\/(www\.)?/g, ''))}</small></span><span class="contact-go">Open ›</span></a>`)
         .join('')}</div>
-      ${P.email ? `<div class="doc-actions"><button class="xp-btn" data-copy="${esc(P.email)}">${icon('copy', 16)}<span>Copy e-mail address</span></button></div>` : ''}
-    </article>`;
-  }
-
-  function resumeDoc() {
-    return `<article class="doc">${head('pdf', 'Resume.pdf', 'PDF Document')}
-      <p class="doc-lead">The classic one-pager, for when a desktop from 2002 is a bit too much.</p>
-      <div class="doc-actions"><a class="xp-btn" href="${esc(P.resume)}" target="_blank" rel="noopener">${icon('pdf', 16)}<span>Open Resume</span></a>
-      <a class="xp-btn" href="${esc(P.resume)}" download>${icon('copy', 16)}<span>Download</span></a></div>
+      <div class="doc-actions">${XP.email() ? `${openBtn('compose', 'Write me a message', 'compose')}<button class="xp-btn" data-copy="${esc(XP.email())}">${icon('copy', 16)}<span>Copy e-mail address</span></button>` : ''}${openBtn('resume', 'Printable résumé', 'resume')}</div>
     </article>`;
   }
 
@@ -135,12 +141,12 @@
       items: () => {
         const top = (A.skills || []).flatMap((g) => g.items).slice(0, 4).join(', ');
         const list = [
-          { id: 'profile', name: 'Profile', icon: P.avatar ? 'src:' + P.avatar : 'user', sub: [P.title, P.location], type: 'Profile', render: profileDoc, term: 'about' },
+          { id: 'profile', name: 'Profile', icon: P.avatar ? 'src:' + P.avatar : 'user', sub: [P.title, XP.real(P.location)], type: 'Profile', render: profileDoc, term: 'about' },
           { id: 'skills', name: 'Skills', icon: 'skills', sub: [`${(A.skills || []).length} skill groups`, top], type: 'Text Document', render: skillsDoc, term: 'skills' },
           { id: 'fun-facts', name: 'Fun Facts', icon: 'bulb', sub: [`${(A.funFacts || []).length} things you did not know`], type: 'Text Document', render: factsDoc },
-          { id: 'contact', name: 'Contact', icon: 'mail', sub: [P.email, 'LinkedIn, GitHub & more'], type: 'Contact Card', render: contactDoc, term: 'contact' },
+          { id: 'contact', name: 'Contact', icon: 'mail', sub: [XP.email(), 'LinkedIn, GitHub & more'], type: 'Contact Card', render: contactDoc, term: 'contact' },
         ];
-        if (P.resume) list.push({ id: 'resume', name: 'Resume.pdf', icon: 'pdf', sub: ['PDF Document'], type: 'PDF Document', render: resumeDoc });
+        list.push({ id: 'resume', name: 'Résumé', icon: 'resume', sub: ['Printable document', P.resume ? 'PDF download included' : 'Print or save as PDF'], type: 'Document', app: 'resume' });
         return list;
       },
     },
@@ -216,6 +222,7 @@
       .map((k) => ({ id: k, name: FOLDERS[k].title, icon: FOLDERS[k].icon, sub: ['File Folder', `${FOLDERS[k].items().length} items`], type: 'File Folder', nav: { kind: 'folder', key: k } }))
       .concat([
         { id: 'terminal', name: 'Terminal', icon: 'terminal', sub: ['Application', 'Enter the Matrix'], type: 'Application', app: 'terminal' },
+        { id: 'resume', name: 'Résumé', icon: 'resume', sub: ['Document', 'Print or save as PDF'], type: 'Document', app: 'resume' },
         { id: 'browser', name: 'Web Explorer', icon: 'browser', sub: ['Application', 'My links'], type: 'Application', app: 'browser' },
       ]);
   }
@@ -226,7 +233,7 @@
     const out = [];
     TOP.forEach((key) =>
       FOLDERS[key].items().forEach((it) => {
-        const hay = [it.name, it.type, ...(it.sub || []), ...(it.tags || []), it.render().replace(/<[^>]+>/g, ' ')].join(' ').toLowerCase();
+        const hay = [it.name, it.type, ...(it.sub || []), ...(it.tags || []), it.render ? it.render().replace(/<[^>]+>/g, ' ') : ''].join(' ').toLowerCase();
         if (hay.includes(q)) out.push(Object.assign({}, it, { folder: key, sub: [FOLDERS[key].title, ...(it.sub || []).slice(0, 1)] }));
       })
     );
@@ -350,6 +357,8 @@
         this.status(`${this.items.length} object${this.items.length === 1 ? '' : 's'}`);
       }
       XP.wm.setTitle(this.id, d.title, d.icon);
+      this.win.opts.hash = this.hash();
+      XP.wm.syncHash();
       this.root.querySelector('.ab-ico').innerHTML = icon(d.icon, 16);
       this.root.querySelector('.ab-text').textContent = d.path;
       this.root.querySelector('[data-act="back"]').disabled = this.pos <= 0;
@@ -364,6 +373,14 @@
 
     status(text) {
       this.root.querySelector('.sb-main').textContent = text;
+    }
+
+    /** The deep link for what this window shows, e.g. "projects/xp-career-desktop". */
+    hash() {
+      const s = this.state();
+      if (s.kind === 'folder') return s.key;
+      if (s.kind === 'item') return this.item ? `${s.key}/${s.id}` : s.key;
+      return s.kind === 'search' ? 'search' : 'documents';
     }
 
     listFace(items) {
@@ -441,7 +458,18 @@
       });
       face.addEventListener('keydown', (e) => {
         const el = e.target.closest('.ex-item');
-        if (el && e.key === 'Enter') this.openItem(find(el), el);
+        if (!el) return;
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          this.openItem(find(el), el);
+        } else if (e.key === 'Backspace') {
+          e.preventDefault();
+          this.back();
+        } else XP.arrowNav(e, [...face.querySelectorAll('.ex-item')], el);
+      });
+      face.addEventListener('focusin', (e) => {
+        const el = e.target.closest('.ex-item');
+        if (el && !el.classList.contains('is-selected')) this.select(find(el), el);
       });
     }
 
@@ -547,11 +575,13 @@
         if (s.key === 'recycle') body += link('recycle', 'Empty the Recycle Bin', 'data-act="empty"');
         if (s.key === 'about') body += link('mail', 'Get in touch', 'data-goto="about:contact"');
         body += link('search', 'Search these files', 'data-act="search"');
+        if (s.key !== 'recycle') body += link('link', 'Copy link to this folder', 'data-act="share"');
         tasks = sec(s.key === 'recycle' ? 'Recycle Bin Tasks' : 'File and Folder Tasks', body);
       } else if (s.kind === 'item' && this.item) {
         let body = link('up', `Back to ${F.title}`, 'data-act="up"');
         (this.item.links || []).forEach((l) => (body += `<a class="tp-link" href="${esc(l.url)}"${target(l.url)}>${icon('globe', 16)}<span>${esc(l.label)}</span></a>`));
         if (this.item.term) body += link('terminal', 'Show in the terminal', `data-term="${this.item.term}"`);
+        if (s.key !== 'recycle') body += link('link', 'Copy link to this page', 'data-act="share"');
         tasks = sec('File Tasks', body);
       } else if (s.kind === 'search') {
         tasks = sec('Search Companion', '<p class="tp-note">Searching every folder on this desktop: names, roles, tools and descriptions.</p>', 'special');
@@ -594,7 +624,7 @@
           ];
         case 'edit':
           return [
-            { label: 'Copy e-mail address', icon: 'copy', action: () => copy(P.email, (t) => this.status(t)) },
+            { label: 'Copy e-mail address', icon: 'copy', disabled: !XP.email(), action: () => copy(XP.email(), (t) => this.status(t)) },
             { label: 'Select All', disabled: true },
           ];
         case 'view':
@@ -671,6 +701,8 @@
           );
         case 'open-sel':
           return this.openItem(this.sel);
+        case 'share':
+          return copy(`${XP.siteUrl()}#${this.hash()}`, (msg, ok) => this.status(ok ? 'Link copied: whoever opens it lands right here.' : msg));
         case 'collapse':
           return t.parentElement.classList.toggle('is-collapsed');
         case 'empty':
@@ -681,20 +713,25 @@
     }
   }
 
+  /** Copy to the clipboard; done(message, copied) reports back (on failure the text itself, to copy by hand). */
   function copy(text, done) {
-    const ok = () => done && done('Copied to clipboard: ' + text);
-    if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(ok, () => done && done(text));
-    else {
-      const ta = document.createElement('textarea');
-      ta.value = text;
-      document.body.appendChild(ta);
-      ta.select();
-      try {
-        document.execCommand('copy');
-        ok();
-      } catch (e) {}
-      ta.remove();
+    const ok = () => done && done('Copied to clipboard: ' + text, true);
+    const fail = () => done && done(text, false);
+    if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text).then(ok, fail);
+    const ta = document.createElement('textarea');
+    const had = document.activeElement;
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+      document.execCommand('copy') ? ok() : fail();
+    } catch (e) {
+      fail();
     }
+    ta.remove();
+    if (had && had.focus) had.focus({ preventScroll: true }); // e.g. keep typing in the terminal
   }
 
   function aboutBox() {
@@ -707,6 +744,11 @@
 
   function openFolder(state, from) {
     if (typeof state === 'string') state = state === 'root' ? { kind: 'root' } : { kind: 'folder', key: state };
+    if (state.kind === 'item' && FOLDERS[state.key]) {
+      // Some "files" are really apps (e.g. About Me → Résumé): open the app itself.
+      const it = FOLDERS[state.key].items().find((i) => i.id === state.id);
+      if (it && it.app) return XP.open(it.app, from);
+    }
     for (const ex of explorers) {
       const s = ex.state();
       if (s && s.kind === state.kind && s.key === state.key && (state.kind !== 'item' || s.id === state.id)) {
@@ -768,6 +810,7 @@
         minWidth: 380,
         from,
         className: 'win-browser',
+        hash: 'links',
         onClose: () => (browser = null),
       });
       this.root.addEventListener('click', (e) => this.onClick(e));
@@ -841,7 +884,7 @@
         </div>
         <div class="portal-ticker"><span>★ ${esc(P.status || 'Welcome!')} ★ Recruiters welcome ★ Psst: open the Terminal and type "help" ★ Best viewed at 1024×768 ★</span></div>
         <div class="portal-body">
-          <main>
+          <div class="portal-main">
             <h2 class="portal-h">Recommended Links</h2>
             <div class="link-cards">${links
               .map(
@@ -859,7 +902,7 @@
               <li>${icon('folder-studies', 16)}<button class="a" data-open="studies">Studies</button>: where I have learned</li>
               <li>${icon('terminal', 16)}<button class="a" data-open="terminal">Enter the Matrix</button>: the same story, as a terminal</li>
             </ul>
-          </main>
+          </div>
           <aside>
             <div class="portal-box"><h3>Hot Links</h3><div>${links
               .map((l) => `<a class="hot" href="${esc(l.url)}"${target(l.url)} data-label="${esc(l.label)}" data-icon="${esc(l.icon || 'globe')}">» ${esc(l.label)}</a>`)
@@ -1021,14 +1064,22 @@
   /* ==================================================================
    * Small system windows
    * ================================================================== */
+  /** Single-instance windows: bring the open one back instead of building a second copy. */
+  function reuse(id) {
+    if (!XP.wm.get(id)) return false;
+    XP.wm.restore(id);
+    return true;
+  }
+
   function openRun() {
+    if (reuse('run')) return;
     const content = XP.html(`<form class="run">
       <div class="run-top">${icon('run', 32)}<p>Type the name of a program, folder, document, or Internet resource, and ${esc(P.firstName)} XP will open it for you.</p></div>
       <label class="run-row"><span>Open:</span><input class="xp-input" list="run-list" autocomplete="off" spellcheck="false" placeholder="cmd"></label>
       <datalist id="run-list">${['cmd', 'about', 'projects', 'experience', 'studies', 'iexplore', 'linkedin', 'github', 'display', 'help', 'recycle bin'].map((c) => `<option value="${c}">`).join('')}</datalist>
       <div class="run-btns"><button class="xp-btn">OK</button><button type="button" class="xp-btn" data-r="cancel">Cancel</button><button type="button" class="xp-btn" data-r="browse">Browse...</button></div>
     </form>`);
-    const win = XP.wm.open({ id: 'run', title: 'Run', icon: 'run', content, width: 380, height: 'auto', resizable: false, minimizable: false });
+    const win = XP.wm.open({ id: 'run', title: 'Run', icon: 'run', content, width: 380, height: 'auto', resizable: false, minimizable: false, escClose: true });
     const input = content.querySelector('input');
     setTimeout(() => input.focus(), 80);
     content.addEventListener('submit', (e) => {
@@ -1051,6 +1102,7 @@
   }
 
   function openHelp(from) {
+    if (reuse('help')) return;
     const k = (s) => `<kbd>${s}</kbd>`;
     const content = XP.html(`<div class="help xp-scroll"><article class="doc">
       ${head('help', 'Help and Support Center', `Getting the most out of ${P.firstName} XP`)}
@@ -1067,19 +1119,36 @@
         <li>Open <b>Terminal</b> from the desktop, the Start menu or the red/blue pill in the tray, or press ${k('`')}.</li>
         <li>Type ${k('help')} and press ${k('Enter')} to see every command. ${k('Tab')} autocompletes and ${k('↑')} / ${k('↓')} walks through your history.</li>
         <li>Type ${k('exit')} or press ${k('Esc')} to unplug and come back to the desktop.</li>
+        <li>Worth a try: ${k('neofetch')}, ${k('tree')}, ${k('color blue')}, ${k('share')}… and a few secrets.</li>
+      </ul>
+      <h2>Need a break?</h2>
+      <ul class="doc-list">
+        <li>Start → All Programs → <b>Minesweeper</b>. Right-click (or the flag button on phones) to flag a mine; the first square is always safe.</li>
+      </ul>
+      <h2>In a hurry?</h2>
+      <ul class="doc-list">
+        <li>Open <b>Résumé</b> on the desktop for everything on one clean page. <b>Print / Save as PDF</b> turns it into a PDF.</li>
+        <li>Printing this site from anywhere (${k('Ctrl')}+${k('P')}) prints the résumé, not the desktop.</li>
+      </ul>
+      <h2>Keyboard</h2>
+      <ul class="doc-list">
+        <li>${k('Tab')} to the desktop icons, then the arrow keys move between them and ${k('Enter')} opens one. The same works inside folders; ${k('Backspace')} goes back.</li>
+        <li>${k('Ctrl')}+${k('Esc')} opens the Start menu, the menu key or ${k('Shift')}+${k('F10')} opens a context menu, ${k('Esc')} closes message boxes and menus.</li>
       </ul>
       <h2>Shortcuts and links</h2>
       <ul class="doc-list">
-        <li>Share a link that opens straight into a section: <code>#terminal</code>, <code>#about</code>, <code>#projects</code>, <code>#experience</code>, <code>#studies</code> or <code>#links</code>.</li>
-        <li>Start → Run… understands commands like <code>cmd</code>, <code>about</code> and <code>iexplore</code>.</li>
+        <li>The address bar always points at what you are looking at, so you can share it. Links open straight into a section: <code>#about</code>, <code>#projects</code>, <code>#experience</code>, <code>#studies</code>, <code>#resume</code>, <code>#terminal</code> or <code>#links</code>, or into one item, like <code>#projects/xp-career-desktop</code>.</li>
+        <li>In any folder, <b>Copy link to this page</b> puts that link on your clipboard.</li>
+        <li>Start → Run… understands commands like <code>cmd</code>, <code>about</code>, <code>resume</code> and <code>iexplore</code>.</li>
       </ul>
-      <div class="doc-actions">${openBtn('terminal', 'Enter the Matrix', 'terminal')}${openBtn('browser', 'Open my links', 'browser')}</div>
+      <div class="doc-actions">${openBtn('resume', 'Open the résumé', 'resume')}${openBtn('terminal', 'Enter the Matrix', 'terminal')}${openBtn('browser', 'Open my links', 'browser')}</div>
     </article></div>`);
-    XP.wm.open({ id: 'help', title: 'Help and Support Center', icon: 'help', content, width: 640, height: 560, from });
+    XP.wm.open({ id: 'help', title: 'Help and Support Center', icon: 'help', content, width: 640, height: 560, from, hash: 'help' });
   }
 
   /* Display Properties: wallpaper + screen saver. */
   function openDisplay(from) {
+    if (reuse('display')) return;
     const D = XP.desktop;
     let wall = D.wallpaper();
     let saver = D.saver();
@@ -1107,7 +1176,7 @@
       </div>
       <div class="dp-btns"><button class="xp-btn" data-act="ok">OK</button><button class="xp-btn" data-act="cancel">Cancel</button><button class="xp-btn" data-act="apply">Apply</button></div>
     </div>`);
-    const win = XP.wm.open({ id: 'display', title: 'Display Properties', icon: 'display', content, width: 420, height: 'auto', resizable: false, minimizable: false, from });
+    const win = XP.wm.open({ id: 'display', title: 'Display Properties', icon: 'display', content, width: 420, height: 'auto', resizable: false, minimizable: false, escClose: true, from });
     const screen = content.querySelector('.dp-screen');
     const canvas = content.querySelector('.dp-rain');
     const saverSel = content.querySelector('.dp-saver');
@@ -1130,6 +1199,7 @@
     };
     let tab = 'desk';
     preview(tab);
+    D.onPhoto(() => win.el.isConnected && tab === 'desk' && wall === 'bliss' && preview(tab)); // the photo may still be loading
     const apply = () => {
       if (!XP.reduced) XP.setMotion(content.querySelector('.dp-motion').checked);
       D.setWallpaper(wall);

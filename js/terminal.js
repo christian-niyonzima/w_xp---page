@@ -15,13 +15,15 @@
   let busy = false;
   let skip = false;
   let usedHelp = false;
+  let returnTo = null; // what had keyboard focus before the terminal opened
   let idleT = 0;
   let cwd = [];
   const history = [];
   let hpos = 0;
 
   /* ---------- tiny formatting helpers ---------- */
-  const cmd = (c, label) => `<span class="cmd" data-cmd="${esc(c)}" role="button" tabindex="0">${esc(label || c)}</span>`;
+  // aria-label too: during the typing effect the visible text is still empty.
+  const cmd = (c, label) => `<span class="cmd" data-cmd="${esc(c)}" role="button" tabindex="0" aria-label="${esc(label || c)}">${esc(label || c)}</span>`;
   const link = (url, label) => `<a href="${esc(url)}"${/^mailto:/i.test(url) ? '' : ' target="_blank" rel="noopener"'}>${esc(label || url)}</a>`;
   const dim = (s) => `<span class="t-dim">${s}</span>`;
   const hi = (s) => `<span class="t-hi">${s}</span>`;
@@ -71,7 +73,8 @@
         row('skills', "what I'm good at"),
         row('contact', 'how to reach me'),
         row('links', 'LinkedIn, GitHub & more'),
-        ...(P.resume ? [row('resume', 'grab my resume')] : []),
+        row('resume', 'printable résumé (print or save as PDF)'),
+        ...(XP.email() ? [row('message', 'write me an e-mail')] : []),
         '',
         hi('  explore'),
         row('ls', 'list files (try: ls, cd projects, cat …)', 'ls / cd / cat'),
@@ -79,6 +82,9 @@
         row('open about', 'open a folder on the XP desktop', 'open <folder>'),
         '',
         hi('  system'),
+        row('neofetch', 'system information, developer style'),
+        row('share', 'copy a link to this site'),
+        row('sound on', 'sound effects on / off', 'sound on|off'),
         row('clear', 'clear the screen'),
         row('color red', 'recolour the rain: ' + XP.MatrixRain.colors().join(', '), 'color <name>'),
         row('history', 'commands you have typed'),
@@ -93,7 +99,7 @@
         ...title('Profile'),
         `  ${pad('name', 10)}${hi(esc(P.name))}`,
         `  ${pad('role', 10)}${esc(P.title)}`,
-        `  ${pad('location', 10)}${esc(P.location)}`,
+        ...(XP.real(P.location) ? [`  ${pad('location', 10)}${esc(P.location)}`] : []),
         ...(P.status ? [`  ${pad('status', 10)}<span class="t-ok">●</span> ${esc(P.status)}`] : []),
         '',
         `  <span class="t-quote">"${esc(P.tagline)}"</span>`,
@@ -157,7 +163,7 @@
     contact() {
       return [
         ...title('Contact'),
-        ...(P.email ? [`  ${pad('email', 10)}${link('mailto:' + P.email, P.email)}`] : []),
+        ...(XP.email() ? [`  ${pad('email', 10)}${link('mailto:' + XP.email(), XP.email())}`] : []),
         ...XP.links()
           .filter((l) => !/^mailto:/i.test(l.url))
           .map((l) => `  ${esc(pad(l.label.toLowerCase(), 10))}${link(l.url, l.url.replace(/^https?:\/\/(www\.)?/, ''))}`),
@@ -290,6 +296,15 @@
     return out;
   }
 
+  /** Unplug, then do something on the desktop. Still happens if the visitor pressed Esc meanwhile. */
+  function leaveThen(fn, delay) {
+    setTimeout(function go() {
+      if (moving) return setTimeout(go, 150);
+      if (active) exit(fn);
+      else fn();
+    }, delay);
+  }
+
   /* ---------- commands ---------- */
   const OPEN = {
     about: 'about', about_me: 'about', me: 'about', profile: 'about',
@@ -299,6 +314,8 @@
     recycle: 'recycle', bin: 'recycle', trash: 'recycle',
     browser: 'browser', explorer: 'browser', web: 'browser', internet: 'browser', iexplore: 'browser',
     help: 'help', display: 'display', desktop: 'desktop',
+    resume: 'resume', cv: 'resume', message: 'compose', mail: 'compose', email: 'compose', compose: 'compose',
+    minesweeper: 'minesweeper', winmine: 'minesweeper', games: 'minesweeper',
   };
 
   const COMMANDS = {
@@ -311,11 +328,18 @@
     contact: { alias: ['email', 'mail', 'hire'], run: L.contact },
     links: { alias: ['social', 'socials', 'link'], run: L.links },
     resume: {
-      alias: ['cv'],
+      alias: ['cv', 'résumé'],
       run: () => {
-        if (!P.resume) return [dim('No resume uploaded yet. Meanwhile: ') + cmd('links') + dim(' or ') + cmd('contact')];
-        XP.openUrl(P.resume);
-        return ['Opening resume in a new tab… ' + link(P.resume, 'click here if it did not open')];
+        leaveThen(() => XP.open('resume'), 450);
+        return ['Unplugging… opening the printable résumé on the desktop.', ...(P.resume ? [dim('or grab the PDF → ') + link(P.resume, P.resume.split('/').pop())] : [])];
+      },
+    },
+    message: {
+      alias: ['write', 'msg', 'compose'],
+      run: () => {
+        if (!XP.email()) return [dim('E-mail is not set up yet. Try ') + cmd('links') + dim(' instead.')];
+        leaveThen(() => XP.open('compose'), 450);
+        return ['Unplugging… opening a new message to ' + hi(esc(P.firstName)) + '.'];
       },
     },
     ls: { alias: ['dir', 'll'], run: (a) => lsLines(a.filter((x) => !x.startsWith('-'))[0], (a.find((x) => x.startsWith('-')) || '') + (a._name === 'll' ? 'la' : '')) },
@@ -350,13 +374,31 @@
           XP.openUrl(out.url);
           return [`Opening ${esc(out.label)}…`];
         }
-        const to = OPEN[what];
+        const to = XP.own(OPEN, what) ? OPEN[what] : null;
         if (!to) return [warn(`open: don't know how to open '${esc(what || '')}'.`), dim('  try: ') + ['about', 'projects', 'experience', 'studies', 'browser', 'linkedin'].map((x) => cmd('open ' + x, x)).join(' ')];
-        setTimeout(() => exit(() => to !== 'desktop' && XP.open(to)), 350);
+        leaveThen(() => to !== 'desktop' && XP.open(to), 350);
         return [`Unplugging… opening ${hi(esc(what))} on the desktop.`];
       },
     },
     clear: { alias: ['cls', 'reset'], run: () => (clear(), []) },
+    neofetch: { alias: ['fastfetch', 'sysinfo', 'winver', 'ver', 'uname'], run: () => neofetch() },
+    share: {
+      run: () => {
+        const url = XP.siteUrl();
+        return new Promise((done) =>
+          XP.apps.copy(url, (msg, ok) => done(print([ok ? `Copied to your clipboard: ${link(url)}` : `Here you go: ${link(url)}`, dim('Send it to someone who should meet ' + esc(P.firstName) + '.')])))
+        );
+      },
+    },
+    sound: {
+      alias: ['mute', 'unmute'],
+      run: (a) => {
+        const want = a._name === 'mute' ? false : a._name === 'unmute' ? true : /^(on|1|yes)$/i.test(a[0] || '') ? true : /^(off|0|no)$/i.test(a[0] || '') ? false : null;
+        const muted = XP.sound.toggle(want == null ? undefined : want);
+        if (!muted) XP.sound.play('ding');
+        return [`Sound effects are ${hi(muted ? 'off' : 'on')}.`];
+      },
+    },
     history: { run: () => history.map((h, i) => `  ${dim(String(i + 1).padStart(3))}  ${esc(h)}`) },
     color: {
       alias: ['colour', 'rain'],
@@ -366,7 +408,10 @@
         const rgb = rain.setColor(c);
         if (!rgb) return [warn(`color: unknown colour '${esc(c)}'. Options: `) + XP.MatrixRain.colors().map((x) => cmd('color ' + x, x)).join(' ')];
         document.documentElement.style.setProperty('--mx-rgb', rgb.join(','));
-        return [`The Matrix is now ${hi(esc(c))}.`];
+        try {
+          localStorage.setItem('xp:mxColor', c);
+        } catch (e) {}
+        return [`The Matrix is now ${hi(esc(c))}. ${dim('(remembered for next time)')}`];
       },
     },
     exit: { alias: ['quit', 'logout', 'q', ':q', 'desktop', 'unplug'], run: () => (setTimeout(() => exit(), 250), ['Unplugging…']) },
@@ -407,10 +452,11 @@
     xp: { secret: true, alias: ['windows', 'win'], run: () => ['Ah, Windows XP. Bliss wallpaper, the start button, the sound of a dial-up modem…', dim(`Back to it → ${cmd('exit')}`)] },
     vim: { secret: true, alias: ['vi', 'emacs', 'nano'], run: () => ['You are now trapped in an editor forever.', dim(`Just kidding. (${cmd(':q')})`)] },
     reboot: { secret: true, alias: ['restart'], run: () => (setTimeout(() => location.reload(), 900), ['Rebooting the Matrix…']) },
-    flip: { secret: true, run: () => (setTimeout(() => exit(() => XP.wm.flip3d()), 250), ['Flipping windows in 3D…']) },
+    flip: { secret: true, run: () => (leaveThen(() => XP.wm.flip3d(), 250), ['Flipping windows in 3D…']) },
+    minesweeper: { secret: true, alias: ['winmine', 'mines', 'play', 'game', 'games'], run: () => (leaveThen(() => XP.open('minesweeper'), 400), ['Loading winmine.exe… mind the mines.']) },
   };
 
-  const NAMES = {};
+  const NAMES = Object.create(null); // no inherited keys: "constructor" is just an unknown command
   Object.entries(COMMANDS).forEach(([k, c]) => {
     NAMES[k] = k;
     (c.alias || []).forEach((a) => (NAMES[a] = k));
@@ -588,7 +634,9 @@
     if (parts.length === 1) {
       options = Object.keys(COMMANDS).filter((c) => !COMMANDS[c].secret && c.startsWith(last.toLowerCase()));
     } else if (/^(open|start)$/i.test(parts[0])) {
-      options = ['about', 'projects', 'experience', 'studies', 'browser', 'recycle', ...XP.links().map((l) => l.id)].filter((o) => o.startsWith(last.toLowerCase()));
+      options = ['about', 'projects', 'experience', 'studies', 'resume', 'message', 'browser', 'recycle', 'minesweeper', ...XP.links().map((l) => l.id)].filter(
+        (o, i, all) => o.startsWith(last.toLowerCase()) && all.indexOf(o) === i
+      );
     } else if (/^(color|colour|rain)$/i.test(parts[0])) {
       options = XP.MatrixRain.colors().filter((o) => o.startsWith(last.toLowerCase()));
     } else {
@@ -621,6 +669,18 @@
   }
 
   function onKey(e) {
+    // While the intro plays, a key press only skips it: it must not end up in the prompt.
+    if (!booted) {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        return exit();
+      }
+      if (!e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        skip = true;
+      }
+      return;
+    }
     if (busy) skip = true;
     if (e.key === 'Escape' || (e.key === '`' && !el.input.value)) {
       e.preventDefault();
@@ -679,6 +739,36 @@
     }, 9000);
   }
 
+  /** "neofetch": the classic developer system summary, with the four-colour flag as the logo. */
+  function neofetch() {
+    const f = (cls, s) => `<span class="nf-${cls}">${s}</span>`;
+    const half = (a, b) => [f(a, '▄▄▄▄▄▄▄') + ' ' + f(b, '▄▄▄▄▄▄▄'), f(a, '███████') + ' ' + f(b, '███████'), f(a, '███████') + ' ' + f(b, '███████'), f(a, '▀▀▀▀▀▀▀') + ' ' + f(b, '▀▀▀▀▀▀▀')];
+    const logo = [...half('r', 'g'), ...half('b', 'y')];
+    const mins = Math.max(1, Math.round(performance.now() / 60000));
+    const skills = (A.skills || []).flatMap((g) => g.items || []).slice(0, 4).join(', ');
+    const wall = (XP.desktop && XP.desktop.WALLPAPERS[XP.desktop.wallpaper()]) || { label: 'Bliss' };
+    const kv = (k, v) => (v ? `${hi(pad(k + ':', 11))}${v}` : null);
+    const info = [
+      `<span class="t-user">visitor</span>@<span class="t-path">${esc(host)}</span>`,
+      dim('─'.repeat(24)),
+      kv('OS', `${esc(P.firstName)} XP Career Edition`),
+      kv('Host', esc(P.name)),
+      kv('Role', esc(P.title)),
+      kv('Location', XP.real(P.location) ? esc(P.location) : ''),
+      kv('Status', P.status ? `<span class="t-ok">●</span> ${esc(P.status)}` : ''),
+      kv('Uptime', `${mins} min${mins === 1 ? '' : 's'}`),
+      kv('Shell', 'matrix-sh 2.0'),
+      kv('Skills', esc(skills)),
+      kv('Portfolio', `${(P.projects || []).length} projects · ${(P.experience || []).length} roles · ${(P.studies || []).length} studies`),
+      kv('Theme', `Luna · ${esc(wall.label)}`),
+      kv('Resolution', `${window.innerWidth}×${window.innerHeight}`),
+    ].filter(Boolean);
+    if (XP.mobile()) return [...logo, '', ...info];
+    const rows = Math.max(logo.length, info.length);
+    const blank = f('x', '███████ ███████'); // invisible blocks: exactly as wide as the logo in any font
+    return Array.from({ length: rows }, (_, i) => `${logo[i] || blank}   ${info[i] || ''}`);
+  }
+
   async function hack() {
     const steps = ['Initializing neural handshake', 'Bypassing ICE firewall', 'Decrypting resume.db', 'Injecting curiosity', 'Compiling reasons to hire'];
     busy = true;
@@ -709,6 +799,8 @@
     await pause(650);
     clear();
     busy = false;
+    // From here on the prompt is live: what the visitor types counts (and skips the typing effect).
+    booted = true;
     await print([banner(P.firstName)], { instant: true });
     await print([
       dim(`${esc(host.toUpperCase())} // career construct v2.0 · secure connection established`),
@@ -717,7 +809,6 @@
       '',
       `<span class="t-callout">→ Type ${cmd('help')} and press <span class="t-key">ENTER</span> to see what you can do.</span>`,
     ]);
-    booted = true;
     idleHint();
   }
 
@@ -741,15 +832,24 @@
       chips: root.querySelector('.term-chips'),
     };
     rain = new XP.MatrixRain(root.querySelector('.matrix-rain'));
+    try {
+      const saved = rain.setColor(localStorage.getItem('xp:mxColor'));
+      if (saved) document.documentElement.style.setProperty('--mx-rgb', saved.join(','));
+    } catch (e) {}
     if (XP.mobile()) el.ghost.textContent = 'type help ↵';
     updatePrompt();
     renderInput();
 
-    const chipList = ['help', 'about', 'experience', 'projects', 'studies', 'skills', 'contact', 'links', 'exit'];
+    const chipList = ['help', 'about', 'experience', 'projects', 'studies', 'skills', 'contact', 'resume', 'links', 'exit'];
     el.chips.innerHTML = chipList.map((c) => `<button class="chip${c === 'help' ? ' chip-help' : ''}" data-cmd="${c}">${c}</button>`).join('');
 
     el.input.addEventListener('keydown', onKey);
     el.input.addEventListener('input', () => {
+      // Phone keyboards may skip keydown: same rule, the intro swallows what is typed.
+      if (!booted) {
+        skip = true;
+        el.input.value = '';
+      }
       renderInput();
       clearTimeout(idleT);
       if (!el.input.value) idleHint();
@@ -761,6 +861,7 @@
       const c = e.target.closest('[data-cmd]');
       if (c) return runClicked(c.dataset.cmd);
       if (e.target.closest('a, .term-exit')) return;
+      if (!booted) skip = true; // a tap skips the intro too
       if (!String(window.getSelection())) focusInput();
     });
     root.addEventListener('keydown', (e) => {
@@ -783,6 +884,9 @@
     }
     moving = true;
     active = true;
+    const was = document.activeElement;
+    returnTo = was && was !== document.body && !el.root.contains(was) ? was : null;
+    if (XP.setHash) XP.setHash('terminal');
     XP.closeMenu && XP.closeMenu();
     XP.desktop && XP.desktop.closeStart && XP.desktop.closeStart();
     const desk = document.getElementById('screen-desktop');
@@ -861,8 +965,19 @@
     rain.stop();
     active = false;
     moving = false;
+    XP.wm.syncHash();
     XP.desktop && XP.desktop.afterMatrix();
     if (typeof then === 'function') then();
+    // Keyboard users carry on where they were before jacking in (unless a new window took focus).
+    requestAnimationFrame(() => {
+      const a = document.activeElement;
+      if (a && a !== document.body) return;
+      if (returnTo && returnTo.isConnected && returnTo.offsetParent !== null) returnTo.focus({ preventScroll: true });
+      else if (XP.byKeyboard()) {
+        const icon = document.querySelector('.d-icon');
+        if (icon && icon.offsetParent !== null) icon.focus({ preventScroll: true });
+      }
+    });
   }
 
   function toggle() {
@@ -875,6 +990,9 @@
     toggle,
     get active() {
       return active || moving;
+    },
+    get moving() {
+      return moving;
     },
   };
 })();

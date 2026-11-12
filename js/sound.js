@@ -138,11 +138,12 @@
     get muted() {
       return muted;
     },
-    toggle() {
-      muted = !muted;
+    toggle(on) {
+      muted = on == null ? !muted : !on;
       try {
         localStorage.setItem('xp:muted', muted ? '1' : '0');
       } catch (e) {}
+      document.dispatchEvent(new CustomEvent('xp:sound', { detail: { muted } })); // the tray icon listens
       return muted;
     },
   };
