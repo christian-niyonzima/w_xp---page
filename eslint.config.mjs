@@ -12,7 +12,7 @@ export default [
   { files: ['sw.js'], languageOptions: { sourceType: 'script', globals: globals.serviceworker } },
   { files: ['tools/**/*.js'], languageOptions: { sourceType: 'commonjs', globals: { ...globals.node, ...globals.browser } } },
   // Tests run code inside the page too (page.evaluate), where the site's XP global exists.
-  { files: ['tests/**/*.js', 'playwright.config.js'], languageOptions: { sourceType: 'commonjs', globals: { ...globals.node, ...globals.browser, XP: 'readonly' } } },
+  { files: ['tests/**/*.js', 'playwright.config.js'], languageOptions: { sourceType: 'commonjs', globals: { ...globals.node, ...globals.browser, XP: 'readonly', PROFILE: 'readonly' } } },
   {
     rules: {
       'no-unused-vars': ['error', { args: 'none', caughtErrors: 'none' }],

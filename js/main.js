@@ -921,6 +921,7 @@
     startSaver,
     closeStart,
     isStartOpen: () => startOpen,
+    onPhoto: (fn) => findPhoto(fn),
     balloon,
     enterUnderMatrix() {
       initDesktop();
@@ -1032,6 +1033,7 @@
     cv: () => XP.open('resume'),
     message: () => XP.open('compose'),
     help: () => XP.open('help'),
+    recycle: () => XP.open('recycle'),
     minesweeper: () => XP.open('minesweeper'),
   };
 
@@ -1046,13 +1048,22 @@
 
   // #about, #projects, … open a folder; #projects/<item> opens one item inside it.
   function route() {
-    const [name, id] = decodeURIComponent(location.hash.slice(1)).toLowerCase().split('/');
+    let raw = location.hash.slice(1);
+    try {
+      raw = decodeURIComponent(raw);
+    } catch (e) {} // a stray "%" in a shared link must not stop the page from starting
+    const [name, id] = raw.toLowerCase().split('/');
     let r = ROUTES[name];
     if (r && id && XP.apps.FOLDERS[name]) r = () => XP.apps.folder({ kind: 'item', key: name, id });
     if (!r) return false;
     if (XP.terminal.active && name !== 'terminal' && name !== 'matrix') {
+      // Leave the terminal first; if it is mid-animation, wait for that to finish.
       const go = r;
-      r = () => XP.terminal.exit(go);
+      r = function leave() {
+        if (!XP.terminal.active) return go();
+        if (XP.terminal.moving) return setTimeout(leave, 200);
+        XP.terminal.exit(go);
+      };
     }
     if (Screens.cur !== 'desktop') {
       initDesktop();

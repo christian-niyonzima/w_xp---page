@@ -719,6 +719,7 @@
     const fail = () => done && done(text, false);
     if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text).then(ok, fail);
     const ta = document.createElement('textarea');
+    const had = document.activeElement;
     ta.value = text;
     ta.setAttribute('readonly', '');
     ta.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
@@ -730,6 +731,7 @@
       fail();
     }
     ta.remove();
+    if (had && had.focus) had.focus({ preventScroll: true }); // e.g. keep typing in the terminal
   }
 
   function aboutBox() {
@@ -1192,6 +1194,7 @@
     };
     let tab = 'desk';
     preview(tab);
+    D.onPhoto(() => win.el.isConnected && tab === 'desk' && wall === 'bliss' && preview(tab)); // the photo may still be loading
     const apply = () => {
       if (!XP.reduced) XP.setMotion(content.querySelector('.dp-motion').checked);
       D.setWallpaper(wall);

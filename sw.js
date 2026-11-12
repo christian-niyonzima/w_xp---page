@@ -51,7 +51,7 @@ self.addEventListener('fetch', (event) => {
       .then((res) => {
         if (res.ok && res.type === 'basic') {
           const copy = res.clone();
-          caches.open(VERSION).then((cache) => cache.put(req, copy));
+          event.waitUntil(caches.open(VERSION).then((cache) => cache.put(req, copy)));
         }
         return res;
       })

@@ -15,6 +15,7 @@
   let busy = false;
   let skip = false;
   let usedHelp = false;
+  let returnTo = null; // what had keyboard focus before the terminal opened
   let idleT = 0;
   let cwd = [];
   const history = [];
@@ -871,6 +872,8 @@
     }
     moving = true;
     active = true;
+    const was = document.activeElement;
+    returnTo = was && was !== document.body && !el.root.contains(was) ? was : null;
     if (XP.setHash) XP.setHash('terminal');
     XP.closeMenu && XP.closeMenu();
     XP.desktop && XP.desktop.closeStart && XP.desktop.closeStart();
@@ -953,6 +956,16 @@
     XP.wm.syncHash();
     XP.desktop && XP.desktop.afterMatrix();
     if (typeof then === 'function') then();
+    // Keyboard users carry on where they were before jacking in (unless a new window took focus).
+    requestAnimationFrame(() => {
+      const a = document.activeElement;
+      if (a && a !== document.body) return;
+      if (returnTo && returnTo.isConnected && returnTo.offsetParent !== null) returnTo.focus({ preventScroll: true });
+      else if (XP.byKeyboard()) {
+        const icon = document.querySelector('.d-icon');
+        if (icon && icon.offsetParent !== null) icon.focus({ preventScroll: true });
+      }
+    });
   }
 
   function toggle() {
@@ -965,6 +978,9 @@
     toggle,
     get active() {
       return active || moving;
+    },
+    get moving() {
+      return moving;
     },
   };
 })();

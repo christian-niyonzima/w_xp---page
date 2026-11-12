@@ -71,16 +71,19 @@
   let printRoot = null;
   let savedTitle = '';
   function beforePrint() {
+    // May run twice for one print (our button, then the browser's beforeprint): keep the
+    // title from before the first run.
     if (printRoot) printRoot.remove();
+    else savedTitle = document.title;
     printRoot = document.createElement('div');
     printRoot.id = 'print-root';
     printRoot.innerHTML = resumeHTML();
     document.body.appendChild(printRoot);
-    savedTitle = document.title;
     document.title = `${P.name} – Résumé`; // the default file name for "Save as PDF"
   }
   function afterPrint() {
-    if (printRoot) printRoot.remove();
+    if (!printRoot) return;
+    printRoot.remove();
     printRoot = null;
     if (savedTitle) document.title = savedTitle;
   }
@@ -141,7 +144,7 @@
         <label class="oe-row"><span>Subject:</span><input class="xp-input oe-subject" name="subject" value="${esc(subject || `Hello ${P.firstName}!`)}" autocomplete="off"></label>
       </div>
       <textarea class="oe-body xp-scroll" name="body" aria-label="Message" spellcheck="true">${esc(body || `Hi ${P.firstName},\n\n`)}</textarea>
-      <div class="xp-statusbar"><span class="sb-cell sb-main">Send opens your own e-mail program with this message filled in.</span></div>
+      <div class="xp-statusbar"><span class="sb-cell sb-main">Send (or Ctrl+Enter) opens your own e-mail program with this message filled in.</span></div>
     </form>`);
     const status = (t) => (content.querySelector('.sb-main').textContent = t);
     const win = XP.wm.open({ id: 'compose', title: 'New Message', icon: 'compose', content, width: 560, height: 430, minWidth: 340, minHeight: 300, className: 'win-compose', from, hash: 'message' });
@@ -152,6 +155,20 @@
     }, 120);
     content.addEventListener('click', (e) => {
       if (e.target.closest('[data-act="copy"]')) XP.apps.copy(email, status);
+    });
+    // Enter in the subject moves on to the message (it must not send half a mail);
+    // Ctrl+Enter anywhere sends, as in Outlook Express.
+    content.querySelector('.oe-subject').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        text.focus();
+      }
+    });
+    content.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        content.requestSubmit ? content.requestSubmit() : content.dispatchEvent(new Event('submit', { cancelable: true }));
+      }
     });
     content.addEventListener('submit', (e) => {
       e.preventDefault();

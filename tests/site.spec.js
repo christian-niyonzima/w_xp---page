@@ -205,6 +205,76 @@ test.describe('phone', () => {
   });
 });
 
+test.describe('regressions', () => {
+  test('printing twice in a row still restores the tab title', async ({ page }) => {
+    await prepare(page);
+    await page.goto('/#desktop');
+    const before = await page.title();
+    await page.evaluate(() => {
+      window.dispatchEvent(new Event('beforeprint'));
+      window.dispatchEvent(new Event('beforeprint'));
+      window.dispatchEvent(new Event('afterprint'));
+    });
+    await expect(page).toHaveTitle(before);
+  });
+
+  test('#recycle links open the Recycle Bin, and a stray % does not break the page', async ({ page }) => {
+    const errors = await prepare(page);
+    await page.goto('/#recycle');
+    await expect(activeTitle(page)).toHaveText('Recycle Bin');
+    await page.goto('/?x=1#100%');
+    await expect(page.locator('#screen-welcome')).toBeVisible();
+    expect(errors).toEqual([]);
+  });
+
+  test('a minimised window releases its taskbar button', async ({ page }) => {
+    await prepare(page);
+    await page.goto('/#about');
+    const btn = page.locator('.task-btn').first();
+    await expect(btn).toHaveAttribute('aria-pressed', 'true');
+    await page.locator('.win-explorer .tb-min').click();
+    await expect(btn).toHaveAttribute('aria-pressed', 'false');
+  });
+});
+
+test.describe('regressions (keyboard)', () => {
+  test.skip(({ isMobile }) => isMobile, 'keyboard flows are for desktop');
+
+  test('Ctrl+Esc opens Start without closing the dialog in front', async ({ page }) => {
+    await prepare(page);
+    await page.goto('/#desktop');
+    await page.evaluate(() => {
+      void XP.apps.about();
+    });
+    await expect(page.locator('.is-dialog')).toBeVisible();
+    await page.keyboard.press('Control+Escape');
+    await expect(page.locator('#start-menu')).toBeVisible();
+    await expect(page.locator('.is-dialog')).toBeVisible();
+  });
+
+  test('Enter in the message subject moves to the text instead of sending', async ({ page }) => {
+    await prepare(page);
+    await page.goto('/#desktop');
+    await page.evaluate(() => {
+      PROFILE.email = 'someone@example.org';
+      void XP.open('compose');
+    });
+    await page.locator('.oe-subject').fill('Hello');
+    await page.locator('.oe-subject').press('Enter');
+    await expect(page.locator('.oe-body')).toBeFocused();
+    await expect(page.locator('.win-compose .sb-main')).not.toContainText('Handed over');
+  });
+
+  test('Home/End in a menu without enabled items does not throw', async ({ page }) => {
+    const errors = await prepare(page);
+    await page.goto('/#about');
+    await page.locator('.win-explorer [data-menu="edit"]').click();
+    await page.keyboard.press('End');
+    await page.keyboard.press('Home');
+    expect(errors).toEqual([]);
+  });
+});
+
 test('js/data.js passes the profile check', () => {
   const vm = require('vm');
   const fs = require('fs');

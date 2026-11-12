@@ -317,7 +317,11 @@
     if (best) focus(best.id);
     else {
       activeId = null;
-      wins.forEach((w) => w.btn && w.btn.classList.remove('is-active'));
+      wins.forEach((w) => {
+        if (!w.btn) return;
+        w.btn.classList.remove('is-active');
+        w.btn.setAttribute('aria-pressed', 'false');
+      });
       syncHash();
     }
   }
@@ -537,11 +541,13 @@
 
   /* Esc closes small dialog windows (message boxes, Run, Display Properties), like XP. */
   document.addEventListener('keydown', (e) => {
-    if (e.key !== 'Escape' || e.defaultPrevented || openMenu || flipping) return;
+    if (e.key !== 'Escape' || e.ctrlKey || e.altKey || e.metaKey || e.defaultPrevented || openMenu || flipping) return;
     if ((XP.terminal && XP.terminal.active) || document.querySelector('.xp-dim')) return;
     if (XP.desktop && XP.desktop.isStartOpen && XP.desktop.isStartOpen()) return;
     const w = wins.get(activeId);
-    if (w && w.opts.escClose && !w.minimized) {
+    // Only when the keyboard is in that window (or nowhere in particular), not e.g. on the desktop.
+    const here = !document.activeElement || document.activeElement === document.body || (w && w.el.contains(document.activeElement));
+    if (w && w.opts.escClose && !w.minimized && here) {
       e.preventDefault();
       close(w.id);
     }
@@ -644,7 +650,7 @@
         if (list[n]) list[n].focus();
       } else if (e.key === 'Home' || e.key === 'End') {
         e.preventDefault();
-        list[e.key === 'Home' ? 0 : list.length - 1].focus();
+        if (list.length) list[e.key === 'Home' ? 0 : list.length - 1].focus();
       } else if (e.key === 'Tab') {
         e.preventDefault();
         closeMenu();
