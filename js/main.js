@@ -42,7 +42,7 @@
    *   fade:  a plain cross-fade
    * ================================================================== */
   const Screens = {
-    cur: null,
+    cur: 'boot', // index.html already shows the boot screen before any script runs
     el: (id) => document.getElementById('screen-' + id),
     instant(id) {
       if (this.cur) this.el(this.cur).classList.remove('is-active');
@@ -166,7 +166,8 @@
   /* ==================================================================
    * Boot + Welcome
    * ================================================================== */
-  function boot() {
+  /** elapsed: how long the boot screen has already been visible (on first load it shows before scripts run). */
+  function boot(elapsed = 0) {
     const scr = Screens.el('boot');
     let done = false;
     const finish = () => {
@@ -179,7 +180,7 @@
       // A deep link (e.g. the skip link) may already have moved on to the desktop.
       if (Screens.cur === 'boot') Screens.show('welcome', 'fade');
     };
-    const t = setTimeout(finish, 3600);
+    const t = setTimeout(finish, Math.max(1200, 3600 - elapsed));
     document.addEventListener('keydown', finish);
     // "click", not "pointerdown": otherwise the same tap lands on the welcome screen and logs in.
     scr.addEventListener('click', finish);
@@ -1105,6 +1106,8 @@
     structuredData();
     webApp();
     document.querySelectorAll('[data-bind]').forEach((el) => (el.textContent = P[el.dataset.bind] || ''));
+    const copy = $('.boot-copy');
+    if (copy) copy.textContent = `Copyright © 2002–${new Date().getFullYear()}`;
     document.querySelectorAll('[data-icon]').forEach((el) => (el.innerHTML = XP.icon(el.dataset.icon, 64)));
     document.title = `${P.firstName} XP · ${P.name}, ${P.title}`;
     store.set('xp:visits', (+store.get('xp:visits', 0) || 0) + 1);
@@ -1146,7 +1149,7 @@
     if (session.get('xp:booted') || XP.reduced) Screens.instant('welcome');
     else {
       Screens.instant('boot');
-      boot();
+      boot(performance.now());
     }
   }
 

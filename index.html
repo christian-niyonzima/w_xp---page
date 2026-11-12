@@ -31,20 +31,21 @@
     <nav class="skip" aria-label="Shortcuts"><button class="skip-link" type="button">Skip the desktop: show the plain résumé</button></nav>
     <div id="stage">
       <!-- ============ BOOT ============ -->
-      <section id="screen-boot" class="screen" aria-label="Starting up">
+      <!-- Shown straight from the HTML, before any script has loaded (the text is refreshed from js/data.js). -->
+      <section id="screen-boot" class="screen is-active" aria-label="Starting up">
         <div class="boot-center">
           <div class="boot-logo">
-            <span class="xp-logo boot-flag" data-icon="xpflag" aria-hidden="true"></span>
+            <span class="xp-logo boot-flag" data-icon="xpflag" aria-hidden="true"><img src="assets/favicon.svg" width="64" height="64" alt="" /></span>
             <div class="boot-word">
-              <span class="boot-small" data-bind="name"></span>
-              <span class="boot-name"><span data-bind="firstName"></span><sup>xp</sup></span>
+              <span class="boot-small" data-bind="name">Christian Niyonzima</span>
+              <span class="boot-name"><span data-bind="firstName">Christian</span><sup>xp</sup></span>
               <span class="boot-edition">Career Edition</span>
             </div>
           </div>
           <div class="boot-bar" role="progressbar" aria-label="Loading"><div class="boot-blocks"><i></i><i></i><i></i></div></div>
         </div>
         <p class="boot-skip">click or press any key to skip</p>
-        <footer class="boot-foot"><span>Copyright © 2002–2026</span><span class="boot-brand" data-bind="name"></span></footer>
+        <footer class="boot-foot"><span class="boot-copy">Copyright © 2002–2026</span><span class="boot-brand" data-bind="name">Christian Niyonzima</span></footer>
       </section>
 
       <!-- ============ WELCOME / LOG ON ============ -->
