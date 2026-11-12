@@ -24,10 +24,11 @@
     <link rel="icon" href="assets/icons/icon-192.png" type="image/png" sizes="192x192" />
     <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png" />
     <link rel="stylesheet" href="css/xp.css" />
-    <link rel="stylesheet" href="css/matrix.css" />
+    <!-- The terminal's styles are not needed for the first paint: load them without blocking it. -->
+    <link rel="stylesheet" href="css/matrix.css" media="print" onload="this.media='all'" />
   </head>
   <body>
-    <a class="skip-link" href="#resume">Skip the desktop: show the plain résumé</a>
+    <nav class="skip" aria-label="Shortcuts"><button class="skip-link" type="button">Skip the desktop: show the plain résumé</button></nav>
     <div id="stage">
       <!-- ============ BOOT ============ -->
       <section id="screen-boot" class="screen" aria-label="Starting up">
@@ -133,14 +134,14 @@
       </div>
     </noscript>
 
-    <script src="js/data.js"></script>
-    <script src="js/icons.js"></script>
-    <script src="js/sound.js"></script>
-    <script src="js/rain.js"></script>
-    <script src="js/wm.js"></script>
-    <script src="js/apps.js"></script>
-    <script src="js/office.js"></script>
-    <script src="js/terminal.js"></script>
-    <script src="js/main.js"></script>
+    <script src="js/data.js" defer></script>
+    <script src="js/icons.js" defer></script>
+    <script src="js/sound.js" defer></script>
+    <script src="js/rain.js" defer></script>
+    <script src="js/wm.js" defer></script>
+    <script src="js/apps.js" defer></script>
+    <script src="js/office.js" defer></script>
+    <script src="js/terminal.js" defer></script>
+    <script src="js/main.js" defer></script>
   </body>
 </html>

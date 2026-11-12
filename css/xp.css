@@ -273,7 +273,7 @@ code {
   bottom: 70px;
   margin: 0;
   text-align: center;
-  color: #4b4b4b;
+  color: #8c8c8c;
   font-size: 11px;
   animation: fade-in 1s 1.2s both;
 }
@@ -1506,7 +1506,7 @@ code {
 }
 
 .ab-label {
-  color: #7f7c73;
+  color: #5d5a52;
   padding: 0 3px;
 }
 
@@ -1959,7 +1959,7 @@ code {
 }
 
 .ex-item-txt span {
-  color: #7f7f7f;
+  color: #666;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2734,7 +2734,7 @@ code {
 }
 
 .portal-h + * + .portal-h,
-main > .portal-h:not(:first-child) {
+.portal-main > .portal-h:not(:first-child) {
   margin-top: 22px;
 }
 

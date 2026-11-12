@@ -377,7 +377,7 @@
     iconsEl = $('#desk-icons');
     iconsEl.innerHTML = '';
     ICONS.forEach((ic) => {
-      ic.el = XP.html(`<button class="d-icon" data-id="${ic.id}" aria-label="${esc(ic.label)}" aria-describedby="desk-hint">
+      ic.el = XP.html(`<button class="d-icon" data-id="${ic.id}" aria-describedby="desk-hint">
         <span class="d-icon-img">${XP.icon(ic.icon, 48)}</span><span class="d-icon-label">${esc(ic.label)}</span></button>`);
       iconsEl.appendChild(ic.el);
     });

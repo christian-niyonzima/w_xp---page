@@ -21,7 +21,8 @@
   let hpos = 0;
 
   /* ---------- tiny formatting helpers ---------- */
-  const cmd = (c, label) => `<span class="cmd" data-cmd="${esc(c)}" role="button" tabindex="0">${esc(label || c)}</span>`;
+  // aria-label too: during the typing effect the visible text is still empty.
+  const cmd = (c, label) => `<span class="cmd" data-cmd="${esc(c)}" role="button" tabindex="0" aria-label="${esc(label || c)}">${esc(label || c)}</span>`;
   const link = (url, label) => `<a href="${esc(url)}"${/^mailto:/i.test(url) ? '' : ' target="_blank" rel="noopener"'}>${esc(label || url)}</a>`;
   const dim = (s) => `<span class="t-dim">${s}</span>`;
   const hi = (s) => `<span class="t-hi">${s}</span>`;

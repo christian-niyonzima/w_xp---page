@@ -882,7 +882,7 @@
         </div>
         <div class="portal-ticker"><span>★ ${esc(P.status || 'Welcome!')} ★ Recruiters welcome ★ Psst: open the Terminal and type "help" ★ Best viewed at 1024×768 ★</span></div>
         <div class="portal-body">
-          <main>
+          <div class="portal-main">
             <h2 class="portal-h">Recommended Links</h2>
             <div class="link-cards">${links
               .map(
@@ -900,7 +900,7 @@
               <li>${icon('folder-studies', 16)}<button class="a" data-open="studies">Studies</button>: where I have learned</li>
               <li>${icon('terminal', 16)}<button class="a" data-open="terminal">Enter the Matrix</button>: the same story, as a terminal</li>
             </ul>
-          </main>
+          </div>
           <aside>
             <div class="portal-box"><h3>Hot Links</h3><div>${links
               .map((l) => `<a class="hot" href="${esc(l.url)}"${target(l.url)} data-label="${esc(l.label)}" data-icon="${esc(l.icon || 'globe')}">» ${esc(l.label)}</a>`)
