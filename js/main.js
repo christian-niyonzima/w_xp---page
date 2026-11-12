@@ -735,11 +735,13 @@
     const paint = () => {
       snd.innerHTML = XP.icon(XP.sound.muted ? 'mute' : 'speaker', 16);
       snd.title = XP.sound.muted ? 'Sound is off' : 'Sound is on';
+      snd.setAttribute('aria-pressed', String(!XP.sound.muted));
+      snd.setAttribute('aria-label', 'Sound');
     };
     paint();
+    document.addEventListener('xp:sound', paint);
     snd.addEventListener('click', () => {
       XP.sound.toggle();
-      paint();
       XP.sound.play('ding');
     });
     $('#tray-matrix').innerHTML = XP.icon('pill', 16);
@@ -861,7 +863,7 @@
         () =>
           balloon({
             title: `Welcome to ${P.firstName} XP`,
-            html: `${touch ? 'Tap' : 'Double-click'} a folder to look around, or open the <button class="a" data-open="terminal">Terminal</button> and type <b>help</b> to enter the Matrix.`,
+            html: `${touch ? 'Tap' : 'Double-click'} a folder to look around, or open the <button class="a" data-open="terminal">Terminal</button> and type <b>help</b> to enter the Matrix.<br><br>In a hurry? The <button class="a" data-open="resume">Résumé</button> has it all on one page.`,
             timeout: XP.mobile() ? 9000 : 16000,
           }),
         1700

@@ -492,3 +492,10 @@ html.no-motion .t-granted {
     display: none;
   }
 }
+
+/* neofetch logo: the four-colour flag */
+.nf-r { color: #ff5a3c; text-shadow: 0 0 8px rgba(255, 90, 60, 0.6); }
+.nf-g { color: #7fd13b; text-shadow: 0 0 8px rgba(127, 209, 59, 0.6); }
+.nf-b { color: #2ea6ff; text-shadow: 0 0 8px rgba(46, 166, 255, 0.6); }
+.nf-y { color: #ffc60b; text-shadow: 0 0 8px rgba(255, 198, 11, 0.6); }
+.nf-x { color: transparent; text-shadow: none; }

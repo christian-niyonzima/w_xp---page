@@ -81,6 +81,9 @@
         row('open about', 'open a folder on the XP desktop', 'open <folder>'),
         '',
         hi('  system'),
+        row('neofetch', 'system information, developer style'),
+        row('share', 'copy a link to this site'),
+        row('sound on', 'sound effects on / off', 'sound on|off'),
         row('clear', 'clear the screen'),
         row('color red', 'recolour the rain: ' + XP.MatrixRain.colors().join(', '), 'color <name>'),
         row('history', 'commands you have typed'),
@@ -301,6 +304,7 @@
     recycle: 'recycle', bin: 'recycle', trash: 'recycle',
     browser: 'browser', explorer: 'browser', web: 'browser', internet: 'browser', iexplore: 'browser',
     help: 'help', display: 'display', desktop: 'desktop',
+    resume: 'resume', cv: 'resume', message: 'compose', mail: 'compose', email: 'compose', compose: 'compose',
   };
 
   const COMMANDS = {
@@ -366,6 +370,24 @@
       },
     },
     clear: { alias: ['cls', 'reset'], run: () => (clear(), []) },
+    neofetch: { alias: ['fastfetch', 'sysinfo', 'winver', 'ver', 'uname'], run: () => neofetch() },
+    share: {
+      run: () => {
+        const url = XP.siteUrl();
+        return new Promise((done) =>
+          XP.apps.copy(url, (msg, ok) => done(print([ok ? `Copied to your clipboard: ${link(url)}` : `Here you go: ${link(url)}`, dim('Send it to someone who should meet ' + esc(P.firstName) + '.')])))
+        );
+      },
+    },
+    sound: {
+      alias: ['mute', 'unmute'],
+      run: (a) => {
+        const want = a._name === 'mute' ? false : a._name === 'unmute' ? true : /^(on|1|yes)$/i.test(a[0] || '') ? true : /^(off|0|no)$/i.test(a[0] || '') ? false : null;
+        const muted = XP.sound.toggle(want == null ? undefined : want);
+        if (!muted) XP.sound.play('ding');
+        return [`Sound effects are ${hi(muted ? 'off' : 'on')}.`];
+      },
+    },
     history: { run: () => history.map((h, i) => `  ${dim(String(i + 1).padStart(3))}  ${esc(h)}`) },
     color: {
       alias: ['colour', 'rain'],
@@ -701,6 +723,36 @@
     idleT = setTimeout(() => {
       if (active && !busy && !usedHelp && !el.input.value) print([`<span class="t-hint">» psst… not sure where to start? type ${cmd('help')} and press ENTER</span>`]);
     }, 9000);
+  }
+
+  /** "neofetch": the classic developer system summary, with the four-colour flag as the logo. */
+  function neofetch() {
+    const f = (cls, s) => `<span class="nf-${cls}">${s}</span>`;
+    const half = (a, b) => [f(a, '▄▄▄▄▄▄▄') + ' ' + f(b, '▄▄▄▄▄▄▄'), f(a, '███████') + ' ' + f(b, '███████'), f(a, '███████') + ' ' + f(b, '███████'), f(a, '▀▀▀▀▀▀▀') + ' ' + f(b, '▀▀▀▀▀▀▀')];
+    const logo = [...half('r', 'g'), ...half('b', 'y')];
+    const mins = Math.max(1, Math.round(performance.now() / 60000));
+    const skills = (A.skills || []).flatMap((g) => g.items || []).slice(0, 4).join(', ');
+    const wall = (XP.desktop && XP.desktop.WALLPAPERS[XP.desktop.wallpaper()]) || { label: 'Bliss' };
+    const kv = (k, v) => (v ? `${hi(pad(k + ':', 11))}${v}` : null);
+    const info = [
+      `<span class="t-user">visitor</span>@<span class="t-path">${esc(host)}</span>`,
+      dim('─'.repeat(24)),
+      kv('OS', `${esc(P.firstName)} XP Career Edition`),
+      kv('Host', esc(P.name)),
+      kv('Role', esc(P.title)),
+      kv('Location', XP.real(P.location) ? esc(P.location) : ''),
+      kv('Status', P.status ? `<span class="t-ok">●</span> ${esc(P.status)}` : ''),
+      kv('Uptime', `${mins} min${mins === 1 ? '' : 's'}`),
+      kv('Shell', 'matrix-sh 2.0'),
+      kv('Skills', esc(skills)),
+      kv('Portfolio', `${(P.projects || []).length} projects · ${(P.experience || []).length} roles · ${(P.studies || []).length} studies`),
+      kv('Theme', `Luna · ${esc(wall.label)}`),
+      kv('Resolution', `${window.innerWidth}×${window.innerHeight}`),
+    ].filter(Boolean);
+    if (XP.mobile()) return [...logo, '', ...info];
+    const rows = Math.max(logo.length, info.length);
+    const blank = f('x', '███████ ███████'); // invisible blocks: exactly as wide as the logo in any font
+    return Array.from({ length: rows }, (_, i) => `${logo[i] || blank}   ${info[i] || ''}`);
   }
 
   async function hack() {
