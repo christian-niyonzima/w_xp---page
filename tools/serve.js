@@ -47,7 +47,10 @@ http
     if (fs.existsSync(file) && fs.statSync(file).isDirectory()) file = path.join(file, 'index.html');
     fs.readFile(file, (err, data) => {
       if (err) {
-        res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }).end('Not found');
+        // Like GitHub Pages: unknown addresses get 404.html.
+        fs.readFile(path.join(ROOT, '404.html'), (e2, page) => {
+          res.writeHead(404, { 'Content-Type': e2 ? 'text/plain; charset=utf-8' : TYPES['.html'] }).end(e2 ? 'Not found' : page);
+        });
         return;
       }
       res.writeHead(200, { 'Content-Type': TYPES[path.extname(file).toLowerCase()] || 'application/octet-stream', 'Cache-Control': 'no-cache' });

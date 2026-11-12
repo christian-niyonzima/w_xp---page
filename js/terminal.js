@@ -306,6 +306,7 @@
     browser: 'browser', explorer: 'browser', web: 'browser', internet: 'browser', iexplore: 'browser',
     help: 'help', display: 'display', desktop: 'desktop',
     resume: 'resume', cv: 'resume', message: 'compose', mail: 'compose', email: 'compose', compose: 'compose',
+    minesweeper: 'minesweeper', winmine: 'minesweeper', games: 'minesweeper',
   };
 
   const COMMANDS = {
@@ -624,7 +625,9 @@
     if (parts.length === 1) {
       options = Object.keys(COMMANDS).filter((c) => !COMMANDS[c].secret && c.startsWith(last.toLowerCase()));
     } else if (/^(open|start)$/i.test(parts[0])) {
-      options = ['about', 'projects', 'experience', 'studies', 'browser', 'recycle', ...XP.links().map((l) => l.id)].filter((o) => o.startsWith(last.toLowerCase()));
+      options = ['about', 'projects', 'experience', 'studies', 'resume', 'message', 'browser', 'recycle', 'minesweeper', ...XP.links().map((l) => l.id)].filter(
+        (o, i, all) => o.startsWith(last.toLowerCase()) && all.indexOf(o) === i
+      );
     } else if (/^(color|colour|rain)$/i.test(parts[0])) {
       options = XP.MatrixRain.colors().filter((o) => o.startsWith(last.toLowerCase()));
     } else {

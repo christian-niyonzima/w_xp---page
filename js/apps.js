@@ -1119,6 +1119,11 @@
         <li>Open <b>Terminal</b> from the desktop, the Start menu or the red/blue pill in the tray, or press ${k('`')}.</li>
         <li>Type ${k('help')} and press ${k('Enter')} to see every command. ${k('Tab')} autocompletes and ${k('↑')} / ${k('↓')} walks through your history.</li>
         <li>Type ${k('exit')} or press ${k('Esc')} to unplug and come back to the desktop.</li>
+        <li>Worth a try: ${k('neofetch')}, ${k('tree')}, ${k('color blue')}, ${k('share')}… and a few secrets.</li>
+      </ul>
+      <h2>Need a break?</h2>
+      <ul class="doc-list">
+        <li>Start → All Programs → <b>Minesweeper</b>. Right-click (or the flag button on phones) to flag a mine; the first square is always safe.</li>
       </ul>
       <h2>In a hurry?</h2>
       <ul class="doc-list">

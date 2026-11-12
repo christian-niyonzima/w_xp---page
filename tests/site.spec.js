@@ -275,6 +275,13 @@ test.describe('regressions (keyboard)', () => {
   });
 });
 
+test('unknown addresses get the XP-style 404 page', async ({ page }) => {
+  const res = await page.goto('/this/page/does/not/exist');
+  expect(res.status()).toBe(404);
+  await expect(page.locator('h1')).toContainText('The page cannot be found');
+  await expect(page.locator('a.home').first()).toHaveAttribute('href', '/');
+});
+
 test('js/data.js passes the profile check', () => {
   const vm = require('vm');
   const fs = require('fs');
